@@ -388,10 +388,12 @@ let state = {
   curId: 1,
   correct: 0, wrong: 0, streak: 0, total: 0,
   answered: false,
-  results: {},     // id -> 'ok' | 'bad'
+  checking: false,
+  results: {},       // id -> 'ok' | 'bad'
+  recordedWrong: {}, // id -> true (so retries don't double-count)
   sbCat: 'all',
   sbSearch: '',
-  pool: [],        // ordered list of ids for next/prev
+  pool: [],          // ordered list of ids for next/prev
   poolIdx: 0,
 };
 
@@ -474,6 +476,8 @@ function filterCat(cat, el) {
 function jumpTo(id) {
   state.curId = id;
   state.answered = false;
+  state.checking = false;
+  delete state.recordedWrong[id];
   state.poolIdx = state.pool.indexOf(id);
   if (state.poolIdx < 0) { state.pool.push(id); state.poolIdx = state.pool.length - 1; }
   renderQuestion();
@@ -575,13 +579,14 @@ function answersMatch(user, correct) {
 }
 
 async function checkAnswer() {
-  if (state.answered) return;
+  if (state.checking || state.answered) return;
   const q = Q.find(x => x.id === state.curId);
   const inp = document.getElementById('ans-input');
   const banner = document.getElementById('result-banner');
 
-  // Disable input immediately to prevent double-submit
-  state.answered = true; inp.disabled = true;
+  // Prevent double-submit during async AI call
+  state.checking = true;
+  inp.disabled = true;
 
   const hasAI = !!localStorage.getItem('groq_api_key');
   if (hasAI) {
@@ -600,19 +605,30 @@ async function checkAnswer() {
     }
   }
 
+  state.checking = false;
+
   if (ok) {
+    // Correct — lock input, record score
     inp.className = 'answer-input correct';
+    inp.disabled = true;
+    state.answered = true;
     banner.className = 'result-banner show ok';
     banner.innerHTML = '✓ Correct!' + (hasAI ? ' <span style="opacity:.6;font-size:11px">(AI)</span>' : '') +
       ' &nbsp;<span style="font-weight:400;white-space:pre-wrap">' + q.reveal + '</span>';
     record(true);
   } else {
+    // Wrong — keep input editable for retry, record wrong only on first attempt
     inp.className = 'answer-input wrong';
+    inp.disabled = false;
+    inp.focus();
     banner.className = 'result-banner show bad';
-    banner.innerHTML = '✗ Not quite. Expected: <strong>' + q.answer + '</strong>' +
-      (aiFeedback ? '<br><span style="opacity:.75;font-size:12px">💡 ' + aiFeedback + '</span>' : '') +
+    banner.innerHTML = '✗ Not quite.' +
+      (aiFeedback ? ' <span style="opacity:.75;font-size:12px">💡 ' + aiFeedback + '</span>' : '') +
       '<br><span style="font-weight:400;opacity:.8;white-space:pre-wrap">' + q.reveal + '</span>';
-    record(false);
+    if (!state.recordedWrong[state.curId]) {
+      state.recordedWrong[state.curId] = true;
+      record(false);
+    }
   }
 }
 
