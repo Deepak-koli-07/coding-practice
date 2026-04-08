@@ -266,7 +266,7 @@ header{position:relative;z-index:20;display:flex;align-items:center;justify-cont
 // ══════════════════════════════════════════════════════
 const Q = [
   // ── STRINGS ──
-  {id:1,cat:'str',diff:'easy',q:'What does strip() do?',code:null,answer:'removes whitespace from both sides',hint:'Think about spaces at the start and end',reveal:'"  hello  ".strip()  →  "hello"\nRemoves whitespace (or a given char) from both sides.'},
+  {id:1,cat:'str',diff:'easy',q:'What does strip() do?',code:null,answer:'removes whitespace (or a given char) from both sides',hint:'Think about spaces at the start and end',reveal:'"  hello  ".strip()  →  "hello"\nRemoves whitespace (or a given char) from both sides.'},
   {id:2,cat:'str',diff:'easy',q:'What is the output?',code:'"  Python  ".strip()',answer:'Python',hint:'strip() removes surrounding whitespace',reveal:'"  Python  ".strip()  →  "Python"'},
   {id:3,cat:'str',diff:'easy',q:'What does split() return?',code:'"John,45,Texas".split(",")',answer:"['John', '45', 'Texas']",hint:'split always returns a list',reveal:'"John,45,Texas".split(",")  →  [\'John\',\'45\',\'Texas\']\nsplit() breaks a string into a list using the separator.'},
   {id:4,cat:'str',diff:'easy',q:'What is the output?',code:'" ".join(["Hello", "World"])',answer:'Hello World',hint:'join is the opposite of split — joins list into string',reveal:'" ".join(["Hello","World"])  →  "Hello World"\nJoins list items into one string with the separator.'},
@@ -525,6 +525,8 @@ function answersMatch(user, correct) {
   const u = normalize(user);
   const c = normalize(correct);
   if (u === c) return true;
+  // Accept if user typed more info but correct answer is fully contained in it
+  if (u.length > c.length && u.includes(c)) return true;
   // Order-independent set comparison: {1,2,3} == {3,1,2}
   if (c.startsWith('{') && c.endsWith('}') && u.startsWith('{') && u.endsWith('}')) {
     const parseSet = s => s.slice(1,-1).split(',').map(x=>x.trim()).filter(Boolean).sort().join(',');
