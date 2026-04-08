@@ -793,22 +793,29 @@ function updateAiBadge() {
 async function checkWithGroq(question, code, correct, userAnswer) {
   const apiKey = localStorage.getItem('groq_api_key');
   if (!apiKey) return null;
-  const prompt = `You are grading a Python practice quiz. Be strict but fair.
 
-Question: ${question}${code ? '\nCode:\n' + code : ''}
+  const systemPrompt = `You are a strict but fair Python quiz grader.
+Always reply with valid JSON only — no extra text, no markdown, no explanation outside the JSON.
+Format: {"correct": true or false, "feedback": "one sentence if wrong, empty string if correct"}
+Rules:
+- Accept answers that convey the same meaning even if worded differently
+- Reject answers that are vague, incomplete, or only partially correct
+- feedback must be one short sentence explaining the mistake, or an empty string if correct`;
+
+  const userPrompt = `Question: ${question}${code ? '\nCode:\n' + code : ''}
 Expected answer: ${correct}
-Student answer: ${userAnswer}
+Student answer: ${userAnswer}`;
 
-Is the student's answer correct? Accept different wording if the meaning matches. Reject vague or incomplete answers.
-
-Reply with JSON only, no other text: {"correct": true or false, "feedback": "one short sentence only if wrong, else empty string"}`;
   try {
     const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
       body: JSON.stringify({
         model: 'llama-3.1-8b-instant',
-        messages: [{ role: 'user', content: prompt }],
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user',   content: userPrompt }
+        ],
         temperature: 0, max_tokens: 80
       })
     });
