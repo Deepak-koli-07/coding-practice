@@ -25,6 +25,25 @@ header{position:relative;z-index:20;display:flex;align-items:center;justify-cont
 .hdr-stats strong{color:var(--accent2);}
 .btn-index-toggle{font-family:'Syne',sans-serif;font-size:12px;font-weight:700;padding:6px 14px;border-radius:6px;border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer;transition:all .2s;}
 .btn-index-toggle:hover,.btn-index-toggle.active{border-color:var(--accent);color:var(--accent);background:rgba(91,141,239,.08);}
+.btn-settings{background:transparent;border:1px solid var(--border);border-radius:6px;padding:6px 10px;color:var(--muted);cursor:pointer;font-size:14px;transition:all .2s;line-height:1;}
+.btn-settings:hover{border-color:var(--accent);color:var(--accent);}
+.btn-settings.has-key{border-color:var(--accent2);color:var(--accent2);}
+.ai-badge{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:600;padding:2px 7px;border-radius:999px;background:rgba(182,110,245,.15);color:#b66ef5;display:none;}
+.ai-badge.show{display:inline-block;}
+
+/* SETTINGS MODAL */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:200;align-items:center;justify-content:center;backdrop-filter:blur(4px);}
+.modal-overlay.show{display:flex;}
+.modal{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:28px;width:min(480px,92vw);position:relative;}
+.modal h2{font-size:16px;font-weight:800;margin-bottom:6px;}
+.modal-desc{font-size:12px;color:var(--muted);margin-bottom:20px;line-height:1.6;}
+.modal-desc a{color:var(--accent);text-decoration:none;}
+.modal label{display:block;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.7px;margin-bottom:6px;}
+.modal input{width:100%;background:var(--code-bg);border:1px solid var(--border);border-radius:7px;padding:10px 13px;font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--text);outline:none;margin-bottom:16px;}
+.modal input:focus{border-color:var(--accent);}
+.modal-actions{display:flex;gap:8px;justify-content:flex-end;}
+.modal-note{font-size:11px;color:var(--muted);margin-top:14px;padding-top:14px;border-top:1px solid var(--border);font-family:'JetBrains Mono',monospace;line-height:1.6;}
+.modal-note strong{color:var(--accent2);}
 
 /* BODY LAYOUT */
 .app-body{display:flex;flex:1;position:relative;z-index:1;overflow:hidden;}
@@ -172,9 +191,28 @@ header{position:relative;z-index:20;display:flex;align-items:center;justify-cont
       <span>correct <strong id="hdr-correct">0</strong></span>
       <span>total <strong id="hdr-total">0</strong></span>
     </div>
+    <span class="ai-badge" id="ai-badge">AI</span>
+    <button class="btn-settings" id="btn-settings" onclick="openSettings()" title="Groq AI Settings">⚙</button>
     <button class="btn-index-toggle active" id="sidebar-toggle" onclick="toggleSidebar()">☰ Index</button>
   </div>
 </header>
+
+<!-- SETTINGS MODAL -->
+<div class="modal-overlay" id="settings-modal" onclick="if(event.target===this)closeSettings()">
+  <div class="modal">
+    <h2>Groq AI Settings</h2>
+    <p class="modal-desc">Add your free Groq API key to enable AI-powered answer checking. Your key is stored only in your browser — it never goes to GitHub or any server.<br><br>Get a free key at <a href="https://console.groq.com" target="_blank">console.groq.com</a></p>
+    <label>Groq API Key</label>
+    <input type="password" id="groq-key-input" placeholder="gsk_..." spellcheck="false">
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="clearGroqKey()">Remove Key</button>
+      <button class="btn btn-primary" onclick="saveGroqKey()">Save Key</button>
+    </div>
+    <div class="modal-note">
+      <strong>What AI does:</strong> Evaluates your answer semantically, so different correct wordings are accepted. Falls back to text matching if no key is set.
+    </div>
+  </div>
+</div>
 
 <div class="app-body">
 
@@ -367,6 +405,7 @@ function init() {
   jumpTo(Q[0].id);
   renderStreak();
   updateScores();
+  updateAiBadge();
 }
 
 function buildPool(shuffled) {
@@ -535,24 +574,46 @@ function answersMatch(user, correct) {
   return false;
 }
 
-function checkAnswer() {
+async function checkAnswer() {
   if (state.answered) return;
   const q = Q.find(x => x.id === state.curId);
   const inp = document.getElementById('ans-input');
-  const ok = answersMatch(inp.value, q.answer);
   const banner = document.getElementById('result-banner');
+
+  // Disable input immediately to prevent double-submit
+  state.answered = true; inp.disabled = true;
+
+  const hasAI = !!localStorage.getItem('groq_api_key');
+  if (hasAI) {
+    banner.className = 'result-banner show info';
+    banner.textContent = '⏳ AI checking...';
+  }
+
+  let ok = answersMatch(inp.value, q.answer);
+  let aiFeedback = '';
+
+  if (hasAI) {
+    const result = await checkWithGroq(q.q, q.code, q.answer, inp.value);
+    if (result !== null) {
+      ok = result.correct;
+      aiFeedback = result.feedback || '';
+    }
+  }
+
   if (ok) {
     inp.className = 'answer-input correct';
     banner.className = 'result-banner show ok';
-    banner.innerHTML = '✓ Correct! &nbsp;<span style="font-weight:400;white-space:pre-wrap">' + q.reveal + '</span>';
+    banner.innerHTML = '✓ Correct!' + (hasAI ? ' <span style="opacity:.6;font-size:11px">(AI)</span>' : '') +
+      ' &nbsp;<span style="font-weight:400;white-space:pre-wrap">' + q.reveal + '</span>';
     record(true);
   } else {
     inp.className = 'answer-input wrong';
     banner.className = 'result-banner show bad';
-    banner.innerHTML = '✗ Not quite. Expected: <strong>' + q.answer + '</strong><br><span style="font-weight:400;opacity:.8;white-space:pre-wrap">' + q.reveal + '</span>';
+    banner.innerHTML = '✗ Not quite. Expected: <strong>' + q.answer + '</strong>' +
+      (aiFeedback ? '<br><span style="opacity:.75;font-size:12px">💡 ' + aiFeedback + '</span>' : '') +
+      '<br><span style="font-weight:400;opacity:.8;white-space:pre-wrap">' + q.reveal + '</span>';
     record(false);
   }
-  state.answered = true; inp.disabled = true;
 }
 
 function showHintType() {
@@ -693,6 +754,68 @@ function hl(code) {
     .replace(/"([^"]*)"/g,'<span class="st">"$1"</span>')
     .replace(/'([^']*)'/g,"<span class='st'>'$1'</span>")
     .replace(/\b(\d+)\b/g,'<span class="nm">$1</span>');
+}
+
+// ══════════════════════════════════════════════════════
+//  GROQ AI SETTINGS
+// ══════════════════════════════════════════════════════
+function openSettings() {
+  const key = localStorage.getItem('groq_api_key') || '';
+  document.getElementById('groq-key-input').value = key ? key.slice(0,8) + '••••••••••••' : '';
+  document.getElementById('settings-modal').classList.add('show');
+}
+function closeSettings() {
+  document.getElementById('settings-modal').classList.remove('show');
+}
+function saveGroqKey() {
+  const val = document.getElementById('groq-key-input').value.trim();
+  if (val && !val.includes('•')) {
+    localStorage.setItem('groq_api_key', val);
+  }
+  updateAiBadge();
+  closeSettings();
+}
+function clearGroqKey() {
+  localStorage.removeItem('groq_api_key');
+  document.getElementById('groq-key-input').value = '';
+  updateAiBadge();
+  closeSettings();
+}
+function updateAiBadge() {
+  const hasKey = !!localStorage.getItem('groq_api_key');
+  document.getElementById('ai-badge').classList.toggle('show', hasKey);
+  document.getElementById('btn-settings').classList.toggle('has-key', hasKey);
+}
+
+// ══════════════════════════════════════════════════════
+//  GROQ API CALL
+// ══════════════════════════════════════════════════════
+async function checkWithGroq(question, code, correct, userAnswer) {
+  const apiKey = localStorage.getItem('groq_api_key');
+  if (!apiKey) return null;
+  const prompt = `You are grading a Python practice quiz. Be strict but fair.
+
+Question: ${question}${code ? '\nCode:\n' + code : ''}
+Expected answer: ${correct}
+Student answer: ${userAnswer}
+
+Is the student's answer correct? Accept different wording if the meaning matches. Reject vague or incomplete answers.
+
+Reply with JSON only, no other text: {"correct": true or false, "feedback": "one short sentence only if wrong, else empty string"}`;
+  try {
+    const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
+      body: JSON.stringify({
+        model: 'llama-3.1-8b-instant',
+        messages: [{ role: 'user', content: prompt }],
+        temperature: 0, max_tokens: 80
+      })
+    });
+    if (!res.ok) return null;
+    const data = await res.json();
+    return JSON.parse(data.choices[0].message.content.trim());
+  } catch(e) { return null; }
 }
 
 init();
