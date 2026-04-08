@@ -212,6 +212,7 @@ header{position:relative;z-index:20;display:flex;align-items:center;justify-cont
         <button class="mode-btn"        onclick="setMode('flash',this)">🃏 Flash</button>
       </div>
       <button class="btn-shuffle" onclick="shuffle()">⇄ Shuffle</button>
+      <button class="btn-shuffle" onclick="resetProgress()" style="margin-left:0;color:#e05c6a;border-color:#e05c6a22;">↺ Reset</button>
     </div>
 
     <div class="progress-wrap">
@@ -360,10 +361,12 @@ let state = {
 //  INIT
 // ══════════════════════════════════════════════════════
 function init() {
+  loadProgress();
   buildPool();
   renderIndex();
   jumpTo(Q[0].id);
   renderStreak();
+  updateScores();
 }
 
 function buildPool(shuffled) {
@@ -479,6 +482,7 @@ function renderMode(q) {
       <button class="btn btn-primary" onclick="checkAnswer()">Check Answer</button>
       <button class="btn btn-ghost"   onclick="showHintType()">Hint 💡</button>
       <button class="btn btn-ghost"   onclick="revealType()">Reveal</button>
+      <button class="btn btn-ghost"   onclick="prevQ()">← Prev</button>
       <button class="btn btn-next"    onclick="nextQ()">Next →</button>`;
     setTimeout(() => inp.focus(), 50);
   }
@@ -490,6 +494,7 @@ function renderMode(q) {
     document.getElementById('btn-row').innerHTML = `
       <button class="btn btn-warn"    onclick="showHint()">Show Hint 💡</button>
       <button class="btn btn-success" onclick="showReveal()">Show Answer ✓</button>
+      <button class="btn btn-ghost"   onclick="prevQ()">← Prev</button>
       <button class="btn btn-next"    onclick="nextQ()">Next →</button>`;
   }
   if (state.mode === 'flash') {
@@ -499,6 +504,7 @@ function renderMode(q) {
     document.getElementById('btn-row').innerHTML = `
       <button class="btn btn-success" onclick="markOk()">✓ Got it</button>
       <button class="btn btn-ghost"   onclick="markNo()">✗ Missed</button>
+      <button class="btn btn-ghost"   onclick="prevQ()">← Prev</button>
       <button class="btn btn-next"    onclick="nextQ()">Next →</button>`;
   }
 }
@@ -506,23 +512,42 @@ function renderMode(q) {
 // ══════════════════════════════════════════════════════
 //  ANSWER CHECKING
 // ══════════════════════════════════════════════════════
+function normalize(s) {
+  return s.trim().toLowerCase()
+    .replace(/\s*,\s*/g, ',')
+    .replace(/\s*\{\s*/g, '{').replace(/\s*\}\s*/g, '}')
+    .replace(/\s*\[\s*/g, '[').replace(/\s*\]\s*/g, ']')
+    .replace(/\s*\(\s*/g, '(').replace(/\s*\)\s*/g, ')')
+    .replace(/\s+/g, ' ');
+}
+
+function answersMatch(user, correct) {
+  const u = normalize(user);
+  const c = normalize(correct);
+  if (u === c) return true;
+  // Order-independent set comparison: {1,2,3} == {3,1,2}
+  if (c.startsWith('{') && c.endsWith('}') && u.startsWith('{') && u.endsWith('}')) {
+    const parseSet = s => s.slice(1,-1).split(',').map(x=>x.trim()).filter(Boolean).sort().join(',');
+    try { if (parseSet(u) === parseSet(c)) return true; } catch(e) {}
+  }
+  return false;
+}
+
 function checkAnswer() {
   if (state.answered) return;
   const q = Q.find(x => x.id === state.curId);
   const inp = document.getElementById('ans-input');
-  const user    = inp.value.trim().toLowerCase().replace(/\s+/g,' ');
-  const correct = q.answer.toLowerCase().replace(/\s+/g,' ');
-  const ok = user === correct || (user.length > 3 && correct.includes(user));
+  const ok = answersMatch(inp.value, q.answer);
   const banner = document.getElementById('result-banner');
   if (ok) {
     inp.className = 'answer-input correct';
     banner.className = 'result-banner show ok';
-    banner.textContent = '✓ Correct!  ' + q.reveal.split('\n')[0];
+    banner.innerHTML = '✓ Correct! &nbsp;<span style="font-weight:400;white-space:pre-wrap">' + q.reveal + '</span>';
     record(true);
   } else {
     inp.className = 'answer-input wrong';
     banner.className = 'result-banner show bad';
-    banner.innerHTML = '✗ Not quite. Answer: <strong>' + q.answer + '</strong>';
+    banner.innerHTML = '✗ Not quite. Expected: <strong>' + q.answer + '</strong><br><span style="font-weight:400;opacity:.8;white-space:pre-wrap">' + q.reveal + '</span>';
     record(false);
   }
   state.answered = true; inp.disabled = true;
@@ -557,6 +582,12 @@ function nextQ() {
   jumpTo(state.pool[state.poolIdx]);
 }
 
+function prevQ() {
+  state.poolIdx--;
+  if (state.poolIdx < 0) state.poolIdx = state.pool.length - 1;
+  jumpTo(state.pool[state.poolIdx]);
+}
+
 function shuffle() {
   buildPool(true);
   jumpTo(state.pool[0]);
@@ -565,12 +596,43 @@ function shuffle() {
 // ══════════════════════════════════════════════════════
 //  SCORE & PROGRESS
 // ══════════════════════════════════════════════════════
+function saveProgress() {
+  try {
+    localStorage.setItem('pydrill', JSON.stringify({
+      correct: state.correct, wrong: state.wrong, streak: state.streak,
+      total: state.total, results: state.results
+    }));
+  } catch(e) {}
+}
+
+function loadProgress() {
+  try {
+    const saved = JSON.parse(localStorage.getItem('pydrill') || 'null');
+    if (saved) {
+      state.correct = saved.correct || 0;
+      state.wrong   = saved.wrong   || 0;
+      state.streak  = saved.streak  || 0;
+      state.total   = saved.total   || 0;
+      state.results = saved.results || {};
+    }
+  } catch(e) {}
+}
+
+function resetProgress() {
+  if (!confirm('Reset all progress?')) return;
+  state.correct = 0; state.wrong = 0; state.streak = 0;
+  state.total = 0; state.results = {};
+  try { localStorage.removeItem('pydrill'); } catch(e) {}
+  updateScores(); renderIndex();
+}
+
 function record(ok) {
   state.total++;
   if (ok) { state.correct++; state.streak++; state.results[state.curId] = 'ok'; }
   else    { state.wrong++;   state.streak = 0; state.results[state.curId] = 'bad'; }
   updateScores();
-  renderIndex(); // refresh status icons
+  renderIndex();
+  saveProgress();
 }
 
 function updateScores() {
