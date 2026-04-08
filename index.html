@@ -816,10 +816,10 @@ Format: {"correct": true or false, "feedback": "one sentence if wrong, empty str
 Rules:
 - IGNORE spelling mistakes, typos, and grammar errors completely — they do not matter
 - IGNORE informal phrasing — "it remove" means "it removes", treat them the same
-- For output questions, treat quoted and unquoted strings as equivalent — "Hello World" and Hello World are both correct
+- For "What is the output?" questions, be strict about the exact output — if the output includes quotes, the student must include them
 - Accept answers that convey the correct meaning even if worded differently
 - Only mark wrong if the actual Python concept or meaning is incorrect or missing
-- feedback must explain the conceptual mistake only, never mention spelling, grammar, or quotes`;
+- feedback must explain the conceptual mistake only, never mention spelling or grammar`;
 
   const userPrompt = `Question: ${question}${code ? '\nCode:\n' + code : ''}
 Expected answer: ${correct}
