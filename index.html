@@ -810,13 +810,15 @@ async function checkWithGroq(question, code, correct, userAnswer) {
   const apiKey = localStorage.getItem('groq_api_key');
   if (!apiKey) return null;
 
-  const systemPrompt = `You are a strict but fair Python quiz grader.
+  const systemPrompt = `You are a Python quiz grader. Your only job is to check if the student understood the concept correctly.
 Always reply with valid JSON only — no extra text, no markdown, no explanation outside the JSON.
 Format: {"correct": true or false, "feedback": "one sentence if wrong, empty string if correct"}
 Rules:
-- Accept answers that convey the same meaning even if worded differently
-- Reject answers that are vague, incomplete, or only partially correct
-- feedback must be one short sentence explaining the mistake, or an empty string if correct`;
+- IGNORE spelling mistakes, typos, and grammar errors completely — they do not matter
+- IGNORE informal phrasing — "it remove" means "it removes", treat them the same
+- Accept answers that convey the correct meaning even if worded differently
+- Only mark wrong if the actual Python concept or meaning is incorrect or missing
+- feedback must explain the conceptual mistake only, never mention spelling or grammar`;
 
   const userPrompt = `Question: ${question}${code ? '\nCode:\n' + code : ''}
 Expected answer: ${correct}
