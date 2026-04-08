@@ -1,0 +1,637 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PyDrill — Python Practice Tool</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0d0f14;--surface:#151820;--card:#1c2030;--border:#2a2f42;
+  --accent:#5b8def;--accent2:#3ecf8e;--accent3:#f5a623;--danger:#e05c6a;
+  --purple:#b66ef5;--text:#e8eaf0;--muted:#7a8099;--code-bg:#111420;
+  --sidebar:260px;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Syne',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;display:flex;flex-direction:column;}
+body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(91,141,239,.04) 1px,transparent 1px),linear-gradient(90deg,rgba(91,141,239,.04) 1px,transparent 1px);background-size:40px 40px;pointer-events:none;z-index:0;}
+
+/* HEADER */
+header{position:relative;z-index:20;display:flex;align-items:center;justify-content:space-between;padding:14px 24px;border-bottom:1px solid var(--border);background:rgba(13,15,20,.95);backdrop-filter:blur(8px);flex-shrink:0;}
+.logo{font-size:20px;font-weight:800;letter-spacing:-.5px;}
+.logo span{color:var(--accent);}
+.hdr-right{display:flex;align-items:center;gap:20px;}
+.hdr-stats{display:flex;gap:18px;font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--muted);}
+.hdr-stats strong{color:var(--accent2);}
+.btn-index-toggle{font-family:'Syne',sans-serif;font-size:12px;font-weight:700;padding:6px 14px;border-radius:6px;border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer;transition:all .2s;}
+.btn-index-toggle:hover,.btn-index-toggle.active{border-color:var(--accent);color:var(--accent);background:rgba(91,141,239,.08);}
+
+/* BODY LAYOUT */
+.app-body{display:flex;flex:1;position:relative;z-index:1;overflow:hidden;}
+
+/* SIDEBAR INDEX */
+.sidebar{width:var(--sidebar);flex-shrink:0;border-right:1px solid var(--border);background:var(--surface);display:flex;flex-direction:column;overflow:hidden;transition:width .3s ease,opacity .3s ease;}
+.sidebar.hidden{width:0;opacity:0;pointer-events:none;}
+.sidebar-header{padding:14px 16px 10px;border-bottom:1px solid var(--border);flex-shrink:0;}
+.sidebar-title{font-size:13px;font-weight:700;color:var(--text);margin-bottom:8px;}
+.sidebar-search{width:100%;background:var(--code-bg);border:1px solid var(--border);border-radius:6px;padding:7px 10px;font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--text);outline:none;}
+.sidebar-search:focus{border-color:var(--accent);}
+.sidebar-search::placeholder{color:var(--muted);}
+.sidebar-filter{display:flex;gap:4px;flex-wrap:wrap;margin-top:8px;}
+.sf-btn{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:600;padding:3px 8px;border-radius:999px;border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer;transition:all .15s;}
+.sf-btn:hover{color:var(--text);}
+.sf-btn.active{color:#fff;}
+.sf-btn[data-f="all"].active{background:var(--accent);border-color:var(--accent);}
+.sf-btn[data-f="str"].active{background:#5b8def;border-color:#5b8def;}
+.sf-btn[data-f="lst"].active{background:#3ecf8e;border-color:#3ecf8e;color:#0d0f14;}
+.sf-btn[data-f="set"].active{background:#f5a623;border-color:#f5a623;color:#0d0f14;}
+.sf-btn[data-f="dct"].active{background:#b66ef5;border-color:#b66ef5;}
+.sf-btn[data-f="blt"].active{background:#e05c6a;border-color:#e05c6a;}
+.q-index-list{flex:1;overflow-y:auto;padding:8px 0;}
+.q-index-list::-webkit-scrollbar{width:4px;}
+.q-index-list::-webkit-scrollbar-track{background:transparent;}
+.q-index-list::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px;}
+.q-index-item{display:flex;align-items:flex-start;gap:8px;padding:8px 14px;cursor:pointer;transition:background .15s;border-left:2px solid transparent;}
+.q-index-item:hover{background:rgba(255,255,255,.03);}
+.q-index-item.active-q{background:rgba(91,141,239,.08);border-left-color:var(--accent);}
+.q-index-item.done-ok{border-left-color:var(--accent2);}
+.q-index-item.done-bad{border-left-color:var(--danger);}
+.qi-num{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--muted);min-width:22px;padding-top:2px;}
+.qi-body{flex:1;min-width:0;}
+.qi-text{font-size:12px;color:var(--text);line-height:1.4;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
+.qi-tags{display:flex;gap:4px;margin-top:3px;}
+.qi-tag{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:600;padding:1px 6px;border-radius:999px;}
+.qi-tag.str{background:rgba(91,141,239,.15);color:#5b8def;}
+.qi-tag.lst{background:rgba(62,207,142,.15);color:#3ecf8e;}
+.qi-tag.set{background:rgba(245,166,35,.15);color:#f5a623;}
+.qi-tag.dct{background:rgba(182,110,245,.15);color:#b66ef5;}
+.qi-tag.blt{background:rgba(224,92,106,.15);color:#e05c6a;}
+.qi-tag.easy{background:rgba(62,207,142,.08);color:#3ecf8e;}
+.qi-tag.med{background:rgba(245,166,35,.08);color:#f5a623;}
+.qi-tag.hard{background:rgba(224,92,106,.08);color:#e05c6a;}
+.qi-status{font-size:11px;margin-top:1px;}
+
+/* MAIN AREA */
+.main{flex:1;overflow-y:auto;padding:24px 28px 60px;}
+.main::-webkit-scrollbar{width:6px;}
+.main::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px;}
+
+/* SCORES */
+.score-panel{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:22px;}
+.score-card{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:12px;text-align:center;}
+.score-num{font-family:'JetBrains Mono',monospace;font-size:22px;font-weight:700;display:block;}
+.score-lbl{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-top:2px;}
+
+/* CONTROLS */
+.controls-row{display:flex;gap:10px;margin-bottom:18px;flex-wrap:wrap;align-items:center;}
+.mode-bar{display:flex;gap:6px;}
+.mode-btn{font-family:'Syne',sans-serif;font-size:12px;font-weight:600;padding:7px 14px;border-radius:8px;border:1px solid var(--border);background:var(--surface);color:var(--muted);cursor:pointer;transition:all .2s;white-space:nowrap;}
+.mode-btn:hover{color:var(--text);border-color:var(--accent);}
+.mode-btn.active{background:var(--card);color:var(--text);border-color:var(--accent);}
+.btn-shuffle{font-family:'Syne',sans-serif;font-size:12px;font-weight:700;padding:7px 14px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer;transition:all .2s;margin-left:auto;}
+.btn-shuffle:hover{border-color:var(--accent3);color:var(--accent3);}
+
+/* PROGRESS */
+.progress-wrap{display:flex;align-items:center;gap:12px;margin-bottom:18px;}
+.progress-track{flex:1;height:3px;background:var(--border);border-radius:999px;overflow:hidden;}
+.progress-fill{height:100%;background:linear-gradient(90deg,var(--accent),var(--accent2));border-radius:999px;transition:width .4s ease;}
+.progress-label{font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--muted);white-space:nowrap;}
+.streak-wrap{display:flex;gap:4px;}
+.streak-dot{width:7px;height:7px;border-radius:50%;background:var(--border);transition:all .3s;}
+.streak-dot.on{background:var(--accent2);box-shadow:0 0 5px var(--accent2);}
+
+/* QUESTION CARD */
+.q-card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:24px;position:relative;overflow:hidden;}
+.q-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,var(--accent),var(--accent2));}
+.q-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;}
+.badges{display:flex;gap:6px;}
+.badge{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:600;padding:2px 9px;border-radius:999px;letter-spacing:.5px;}
+.badge-str{background:rgba(91,141,239,.15);color:#5b8def;}
+.badge-lst{background:rgba(62,207,142,.15);color:#3ecf8e;}
+.badge-set{background:rgba(245,166,35,.15);color:#f5a623;}
+.badge-dct{background:rgba(182,110,245,.15);color:#b66ef5;}
+.badge-blt{background:rgba(224,92,106,.15);color:#e05c6a;}
+.badge-easy{background:rgba(62,207,142,.1);color:#3ecf8e;}
+.badge-med{background:rgba(245,166,35,.1);color:#f5a623;}
+.badge-hard{background:rgba(224,92,106,.1);color:#e05c6a;}
+.q-num{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted);}
+.q-text{font-size:16px;font-weight:600;line-height:1.55;margin-bottom:12px;}
+.q-code{background:var(--code-bg);border:1px solid var(--border);border-radius:7px;padding:13px 16px;font-family:'JetBrains Mono',monospace;font-size:13px;color:#c9d0e8;margin-bottom:12px;line-height:1.7;white-space:pre;overflow-x:auto;}
+.kw{color:#5b8def;}.fn{color:#3ecf8e;}.st{color:#f5a623;}.cm{color:#4a5270;font-style:italic;}.nm{color:#e05c6a;}
+.answer-input{width:100%;background:var(--code-bg);border:1px solid var(--border);border-radius:7px;padding:12px 15px;font-family:'JetBrains Mono',monospace;font-size:14px;color:var(--text);outline:none;transition:border-color .2s;resize:none;}
+.answer-input:focus{border-color:var(--accent);}
+.answer-input.correct{border-color:var(--accent2);background:rgba(62,207,142,.05);}
+.answer-input.wrong{border-color:var(--danger);background:rgba(224,92,106,.05);}
+.result-banner{display:none;padding:10px 14px;border-radius:7px;font-size:13px;font-weight:600;margin-top:10px;line-height:1.5;}
+.result-banner.show{display:block;}
+.result-banner.ok{background:rgba(62,207,142,.1);border:1px solid rgba(62,207,142,.3);color:#3ecf8e;}
+.result-banner.bad{background:rgba(224,92,106,.1);border:1px solid rgba(224,92,106,.3);color:#e05c6a;}
+.result-banner.info{background:rgba(91,141,239,.1);border:1px solid rgba(91,141,239,.3);color:#8ab4f8;}
+.hint-box{display:none;background:rgba(245,166,35,.07);border:1px solid rgba(245,166,35,.25);border-radius:7px;padding:10px 14px;font-size:12px;color:#f5a623;margin-top:10px;font-family:'JetBrains Mono',monospace;}
+.hint-box.show{display:block;}
+.answer-reveal{display:none;background:var(--code-bg);border:1px solid var(--border);border-radius:7px;padding:13px 15px;font-family:'JetBrains Mono',monospace;font-size:13px;color:#c9d0e8;margin-top:10px;line-height:1.7;white-space:pre-wrap;}
+.answer-reveal.show{display:block;}
+.flashcard-wrap{perspective:1000px;margin-top:12px;cursor:pointer;}
+.flashcard{width:100%;min-height:120px;position:relative;transform-style:preserve-3d;transition:transform .5s cubic-bezier(.4,0,.2,1);}
+.flashcard.flipped{transform:rotateY(180deg);}
+.fc-front,.fc-back{position:absolute;inset:0;backface-visibility:hidden;border-radius:8px;padding:20px;display:flex;align-items:center;justify-content:center;text-align:center;min-height:120px;}
+.fc-front{background:rgba(91,141,239,.08);border:1px solid rgba(91,141,239,.2);font-size:15px;font-weight:700;}
+.fc-back{background:rgba(62,207,142,.08);border:1px solid rgba(62,207,142,.2);transform:rotateY(180deg);font-family:'JetBrains Mono',monospace;font-size:12px;color:#c9d0e8;line-height:1.7;white-space:pre-wrap;text-align:left;}
+.fc-hint{text-align:center;font-size:11px;color:var(--muted);margin-top:7px;font-family:'JetBrains Mono',monospace;}
+.btn-row{display:flex;gap:8px;margin-top:16px;flex-wrap:wrap;}
+.btn{font-family:'Syne',sans-serif;font-size:12px;font-weight:700;padding:9px 18px;border-radius:7px;border:none;cursor:pointer;transition:all .18s;letter-spacing:.3px;}
+.btn:active{transform:scale(.97);}
+.btn-primary{background:var(--accent);color:#fff;}
+.btn-primary:hover{background:#4a7de0;}
+.btn-success{background:var(--accent2);color:#0d0f14;}
+.btn-success:hover{background:#32b87a;}
+.btn-ghost{background:transparent;border:1px solid var(--border);color:var(--muted);}
+.btn-ghost:hover{border-color:var(--accent);color:var(--accent);}
+.btn-warn{background:var(--accent3);color:#0d0f14;}
+.btn-warn:hover{background:#e09500;}
+.btn-next{background:var(--surface);border:1px solid var(--border);color:var(--text);margin-left:auto;}
+.btn-next:hover{border-color:var(--accent2);color:var(--accent2);}
+
+.no-results{padding:24px;text-align:center;font-size:12px;color:var(--muted);font-family:'JetBrains Mono',monospace;}
+
+@media(max-width:700px){
+  .sidebar{position:fixed;top:0;left:0;bottom:0;z-index:100;width:280px !important;opacity:1 !important;}
+  .sidebar.hidden{width:0 !important;opacity:0 !important;}
+  .score-panel{grid-template-columns:repeat(2,1fr);}
+  .main{padding:16px 14px 40px;}
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">Py<span>Drill</span></div>
+  <div class="hdr-right">
+    <div class="hdr-stats">
+      <span>streak <strong id="hdr-streak">0</strong></span>
+      <span>correct <strong id="hdr-correct">0</strong></span>
+      <span>total <strong id="hdr-total">0</strong></span>
+    </div>
+    <button class="btn-index-toggle active" id="sidebar-toggle" onclick="toggleSidebar()">☰ Index</button>
+  </div>
+</header>
+
+<div class="app-body">
+
+  <!-- SIDEBAR INDEX -->
+  <div class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+      <div class="sidebar-title">All Questions</div>
+      <input class="sidebar-search" id="sb-search" placeholder="Search questions..." oninput="filterIndex()">
+      <div class="sidebar-filter">
+        <button class="sf-btn active" data-f="all"  onclick="filterCat('all',this)">All</button>
+        <button class="sf-btn"       data-f="str"  onclick="filterCat('str',this)">STR</button>
+        <button class="sf-btn"       data-f="lst"  onclick="filterCat('lst',this)">LIST</button>
+        <button class="sf-btn"       data-f="set"  onclick="filterCat('set',this)">SET</button>
+        <button class="sf-btn"       data-f="dct"  onclick="filterCat('dct',this)">DICT</button>
+        <button class="sf-btn"       data-f="blt"  onclick="filterCat('blt',this)">BLT</button>
+      </div>
+    </div>
+    <div class="q-index-list" id="q-index-list"></div>
+  </div>
+
+  <!-- MAIN CONTENT -->
+  <div class="main" id="main-area">
+
+    <div class="score-panel">
+      <div class="score-card"><span class="score-num" id="sc-correct" style="color:#3ecf8e">0</span><div class="score-lbl">Correct</div></div>
+      <div class="score-card"><span class="score-num" id="sc-wrong"   style="color:#e05c6a">0</span><div class="score-lbl">Wrong</div></div>
+      <div class="score-card"><span class="score-num" id="sc-streak"  style="color:#f5a623">0</span><div class="score-lbl">Streak</div></div>
+      <div class="score-card"><span class="score-num" id="sc-pct"     style="color:#5b8def">0%</span><div class="score-lbl">Accuracy</div></div>
+    </div>
+
+    <div class="controls-row">
+      <div class="mode-bar">
+        <button class="mode-btn active" onclick="setMode('type',this)">⌨️ Type</button>
+        <button class="mode-btn"        onclick="setMode('hint',this)">💡 Hint</button>
+        <button class="mode-btn"        onclick="setMode('flash',this)">🃏 Flash</button>
+      </div>
+      <button class="btn-shuffle" onclick="shuffle()">⇄ Shuffle</button>
+    </div>
+
+    <div class="progress-wrap">
+      <div class="progress-track"><div class="progress-fill" id="prog-fill" style="width:0%"></div></div>
+      <div class="progress-label" id="prog-label">- / -</div>
+      <div class="streak-wrap" id="streak-dots"></div>
+    </div>
+
+    <div class="q-card">
+      <div class="q-top">
+        <div class="badges">
+          <span class="badge" id="cat-badge">STR</span>
+          <span class="badge" id="diff-badge">easy</span>
+        </div>
+        <span class="q-num" id="q-num">#1</span>
+      </div>
+      <div class="q-text" id="q-text">Click any question in the index →</div>
+      <div class="q-code" id="q-code" style="display:none"></div>
+
+      <div id="mode-type">
+        <textarea class="answer-input" id="ans-input" rows="2"
+          placeholder="Type your answer here... (Enter to check)"
+          onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();checkAnswer();}"></textarea>
+        <div class="result-banner" id="result-banner"></div>
+      </div>
+
+      <div id="mode-hint" style="display:none">
+        <div class="hint-box" id="hint-box"></div>
+        <div class="answer-reveal" id="ans-reveal"></div>
+      </div>
+
+      <div id="mode-flash" style="display:none">
+        <div class="flashcard-wrap" onclick="flipCard()">
+          <div class="flashcard" id="flashcard">
+            <div class="fc-front" id="fc-front"></div>
+            <div class="fc-back"  id="fc-back"></div>
+          </div>
+        </div>
+        <p class="fc-hint">click to flip</p>
+      </div>
+
+      <div class="btn-row" id="btn-row"></div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+// ══════════════════════════════════════════════════════
+//  QUESTION BANK — add more questions at the bottom
+// ══════════════════════════════════════════════════════
+const Q = [
+  // ── STRINGS ──
+  {id:1,cat:'str',diff:'easy',q:'What does strip() do?',code:null,answer:'removes whitespace from both sides',hint:'Think about spaces at the start and end',reveal:'"  hello  ".strip()  →  "hello"\nRemoves whitespace (or a given char) from both sides.'},
+  {id:2,cat:'str',diff:'easy',q:'What is the output?',code:'"  Python  ".strip()',answer:'Python',hint:'strip() removes surrounding whitespace',reveal:'"  Python  ".strip()  →  "Python"'},
+  {id:3,cat:'str',diff:'easy',q:'What does split() return?',code:'"John,45,Texas".split(",")',answer:"['John', '45', 'Texas']",hint:'split always returns a list',reveal:'"John,45,Texas".split(",")  →  [\'John\',\'45\',\'Texas\']\nsplit() breaks a string into a list using the separator.'},
+  {id:4,cat:'str',diff:'easy',q:'What is the output?',code:'" ".join(["Hello", "World"])',answer:'Hello World',hint:'join is the opposite of split — joins list into string',reveal:'" ".join(["Hello","World"])  →  "Hello World"\nJoins list items into one string with the separator.'},
+  {id:5,cat:'str',diff:'easy',q:'What is the output?',code:'"medicare".upper()',answer:'MEDICARE',hint:'upper() converts all letters to uppercase',reveal:'"medicare".upper()  →  "MEDICARE"'},
+  {id:6,cat:'str',diff:'easy',q:'What is the output?',code:'"MEDICARE".lower()',answer:'medicare',hint:'lower() converts all to lowercase',reveal:'"MEDICARE".lower()  →  "medicare"'},
+  {id:7,cat:'str',diff:'easy',q:'What is the output?',code:'"medicare advantage".title()',answer:'Medicare Advantage',hint:'title() capitalizes the first letter of each word',reveal:'"medicare advantage".title()  →  "Medicare Advantage"'},
+  {id:8,cat:'str',diff:'medium',q:'What does find() return if the substring is NOT found?',code:'"hello".find("xyz")',answer:'-1',hint:'find() is safe — never crashes on missing values',reveal:'"hello".find("xyz")  →  -1\nfind() returns -1 when not found.\nindex() would raise ValueError instead.'},
+  {id:9,cat:'str',diff:'medium',q:'What is the output?',code:'"Medicare Advantage".startswith("Medicare")',answer:'True',hint:'startswith checks the beginning of the string',reveal:'"Medicare Advantage".startswith("Medicare")  →  True'},
+  {id:10,cat:'str',diff:'medium',q:'What is the output?',code:'"Medicare Advantage".endswith("Plan")',answer:'False',hint:'endswith checks the END of the string',reveal:'"Medicare Advantage".endswith("Plan")  →  False\nThe string ends with "Advantage", not "Plan".'},
+  {id:11,cat:'str',diff:'medium',q:'What is the output?',code:'"the cat sat on the mat".count("at")',answer:'3',hint:'count() counts all occurrences of the substring',reveal:'"the cat sat on the mat".count("at")  →  3\n(c-at, s-at, m-at)'},
+  {id:12,cat:'str',diff:'medium',q:'What is the output?',code:'"hello world".replace("world", "Python")',answer:'hello Python',hint:'replace(old, new) replaces all occurrences',reveal:'"hello world".replace("world","Python")  →  "hello Python"'},
+  {id:13,cat:'str',diff:'hard',q:'What is the output?',code:'"Python"[::-1]',answer:'nohtyP',hint:'[::-1] reverses any sequence in Python',reveal:'"Python"[::-1]  →  "nohtyP"\nSlicing with step -1 reverses the string.'},
+  {id:14,cat:'str',diff:'hard',q:'What is the output?',code:'"42".zfill(5)',answer:'00042',hint:'zfill pads with leading zeros on the left',reveal:'"42".zfill(5)  →  "00042"\nAdds zeros on left until length reaches 5.'},
+  {id:15,cat:'str',diff:'medium',q:'What is the output?',code:'"123".isdigit()',answer:'True',hint:'isdigit() returns True only if all characters are 0-9',reveal:'"123".isdigit()  →  True\n"12a".isdigit()  →  False'},
+  {id:16,cat:'str',diff:'medium',q:'What is the output?',code:'"hello".isalpha()',answer:'True',hint:'isalpha() checks if all characters are letters',reveal:'"hello".isalpha()   →  True\n"hello1".isalpha()  →  False'},
+  {id:17,cat:'str',diff:'easy',q:'What is the output?',code:'"Medicare"[0:4]',answer:'Medi',hint:'Slicing: start included, stop NOT included',reveal:'"Medicare"[0:4]  →  "Medi"\nIndex 0=M,1=e,2=d,3=i. Index 4 not included.'},
+  {id:18,cat:'str',diff:'medium',q:'What is the output?',code:'"  spaces  ".lstrip()',answer:'spaces  ',hint:'lstrip removes whitespace from LEFT only',reveal:'"  spaces  ".lstrip()  →  "spaces  "\nOnly removes left side spaces. rstrip() removes right.'},
+  {id:19,cat:'str',diff:'medium',q:'What is the output?',code:'"hello world".capitalize()',answer:'Hello world',hint:'capitalize() only changes the FIRST letter of the string',reveal:'"hello world".capitalize()  →  "Hello world"\nOnly first letter becomes uppercase. title() does each word.'},
+  {id:20,cat:'str',diff:'hard',q:'What is the output?',code:'"a-b-c-d".split("-", 2)',answer:"['a', 'b', 'c-d']",hint:'The second argument limits how many splits happen',reveal:'"a-b-c-d".split("-", 2)  →  [\'a\',\'b\',\'c-d\']\nSplits at most 2 times. Remaining stays as one string.'},
+  // ── LISTS ──
+  {id:21,cat:'lst',diff:'easy',q:'What is the output?',code:'lst = [1, 2, 3]\nlst.append(4)\nprint(lst)',answer:'[1, 2, 3, 4]',hint:'append adds ONE item to the end',reveal:'lst.append(4)  →  [1, 2, 3, 4]\nappend() adds one item to the end of the list.'},
+  {id:22,cat:'lst',diff:'easy',q:'Difference between append() and extend()?',code:null,answer:'append adds one item, extend adds all items from another list',hint:'Think: what happens when you pass a list to each?',reveal:'lst.append([4,5])   →  [1,2,3,[4,5]]  ← list inside list\nlst.extend([4,5])  →  [1,2,3,4,5]   ← items added one by one'},
+  {id:23,cat:'lst',diff:'easy',q:'What does pop(1) return?',code:'lst = ["a","b","c","d"]\nprint(lst.pop(1))',answer:'b',hint:'pop(i) removes AND returns the item at index i',reveal:'lst.pop(1)  →  returns "b"\nList becomes ["a","c","d"]'},
+  {id:24,cat:'lst',diff:'easy',q:'What is the output?',code:'lst = [3, 1, 4, 1, 2]\nlst.sort()\nprint(lst)',answer:'[1, 1, 2, 3, 4]',hint:'sort() changes the list IN PLACE',reveal:'lst.sort()  →  [1,1,2,3,4]\nsort() modifies the original. sorted() returns a new list.'},
+  {id:25,cat:'lst',diff:'medium',q:'What is the output?',code:'lst = [1, 2, 3, 2, 1]\nprint(lst.count(2))',answer:'2',hint:'count() counts how many times a value appears',reveal:'lst.count(2)  →  2\nThere are two 2s in the list.'},
+  {id:26,cat:'lst',diff:'medium',q:'What is the output?',code:'lst = [10, 20, 30, 40, 50]\nprint(lst[1:4])',answer:'[20, 30, 40]',hint:'Slicing: start included, stop NOT included',reveal:'lst[1:4]  →  [20,30,40]\nIndex 1=20, 2=30, 3=40. Index 4 not included.'},
+  {id:27,cat:'lst',diff:'medium',q:'What is the output?',code:'[x**2 for x in range(1, 5)]',answer:'[1, 4, 9, 16]',hint:'List comprehension: square each number in range(1,5)',reveal:'[x**2 for x in range(1,5)]  →  [1,4,9,16]\nrange(1,5) = 1,2,3,4. We square each.'},
+  {id:28,cat:'lst',diff:'medium',q:'What is the output?',code:'lst = [1, 2, 3]\ncopy = lst.copy()\ncopy.append(4)\nprint(lst)',answer:'[1, 2, 3]',hint:'copy() creates an independent list',reveal:'print(lst)  →  [1, 2, 3]\ncopy() is independent. Changing copy does NOT affect lst.'},
+  {id:29,cat:'lst',diff:'hard',q:'What is the output?',code:'lst = [5, 3, 8, 1]\nprint(sorted(lst, reverse=True))',answer:'[8, 5, 3, 1]',hint:'sorted() returns a NEW sorted list',reveal:'sorted(lst, reverse=True)  →  [8,5,3,1]\nsorted() returns a new list. lst stays [5,3,8,1].'},
+  {id:30,cat:'lst',diff:'hard',q:'What is the output?',code:'lst = [1, 2, 3, 4, 5]\nprint(lst[::2])',answer:'[1, 3, 5]',hint:'Third slice value is the step size',reveal:'lst[::2]  →  [1,3,5]\n[::2] takes every 2nd element from index 0.'},
+  {id:31,cat:'lst',diff:'medium',q:'What does remove() do?',code:'lst = [1, 2, 3, 2]\nlst.remove(2)\nprint(lst)',answer:'[1, 3, 2]',hint:'remove() removes the FIRST occurrence of the value',reveal:'lst.remove(2)  →  [1,3,2]\nOnly removes the first 2. Second 2 stays.'},
+  {id:32,cat:'lst',diff:'easy',q:'What is the output?',code:'lst = [10, 20, 30]\nprint(lst.index(20))',answer:'1',hint:'index() returns the position of a value',reveal:'lst.index(20)  →  1\n20 is at position (index) 1.'},
+  {id:33,cat:'lst',diff:'medium',q:'What is the output?',code:'lst = [1, 2, 3]\nlst.insert(1, 99)\nprint(lst)',answer:'[1, 99, 2, 3]',hint:'insert(j, val) inserts BEFORE index j',reveal:'lst.insert(1, 99)  →  [1, 99, 2, 3]\nInserts 99 before index 1. Other items shift right.'},
+  {id:34,cat:'lst',diff:'easy',q:'What is the output?',code:'lst = [3, 1, 2]\nlst.reverse()\nprint(lst)',answer:'[2, 1, 3]',hint:'reverse() reverses the list IN PLACE',reveal:'lst.reverse()  →  [2,1,3]\nModifies original. Does not return a new list.'},
+  {id:35,cat:'lst',diff:'medium',q:'What is the output?',code:'lst = [4, 7, 1, 9, 2]\nprint(max(lst))',answer:'9',hint:'max() returns the largest value in the list',reveal:'max([4,7,1,9,2])  →  9\nmax() finds the largest value.'},
+  // ── SETS ──
+  {id:36,cat:'set',diff:'easy',q:'What is special about a Set?',code:null,answer:'stores only unique values, no duplicates',hint:'Sets automatically remove repeated values',reveal:'s = {1,2,2,3,3}\nprint(s)  →  {1,2,3}\nSets store only UNIQUE values and have no order.'},
+  {id:37,cat:'set',diff:'easy',q:'What is the output?',code:'s = {1, 2, 3, 2, 1}\nprint(len(s))',answer:'3',hint:'Duplicates are removed automatically in a set',reveal:'len({1,2,3,2,1})  →  3\nAfter removing duplicates: {1,2,3} = 3 items.'},
+  {id:38,cat:'set',diff:'easy',q:'Correct way to create an empty set?',code:null,answer:'set()',hint:'{} creates an empty DICT not a set!',reveal:'empty_set  = set()  ← correct\nempty_dict = {}     ← this is a dict!\nAlways use set() for an empty set.'},
+  {id:39,cat:'set',diff:'medium',q:'What is the output?',code:'a = {1, 2, 3}\nb = {2, 3, 4}\nprint(a & b)',answer:'{2, 3}',hint:'& is intersection — items in BOTH sets',reveal:'a & b  →  {2,3}\n& (intersection) returns only items in BOTH sets.'},
+  {id:40,cat:'set',diff:'medium',q:'What is the output?',code:'a = {1, 2, 3}\nb = {3, 4, 5}\nprint(a | b)',answer:'{1, 2, 3, 4, 5}',hint:'| is union — ALL items from both sets',reveal:'a | b  →  {1,2,3,4,5}\n| (union) combines both sets, removing duplicates.'},
+  {id:41,cat:'set',diff:'medium',q:'What is the output?',code:'a = {1, 2, 3, 4}\nb = {3, 4, 5}\nprint(a - b)',answer:'{1, 2}',hint:'- is difference — items in a but NOT in b',reveal:'a - b  →  {1,2}\ndifference() returns items in a that are NOT in b.'},
+  {id:42,cat:'set',diff:'hard',q:'What is the output?',code:'a = {1, 2, 3}\nb = {3, 4, 5}\nprint(a ^ b)',answer:'{1, 2, 4, 5}',hint:'^ is symmetric difference — items NOT in both',reveal:'a ^ b  →  {1,2,4,5}\nSymmetric difference: in either set but NOT in both.'},
+  {id:43,cat:'set',diff:'medium',q:'Which method removes safely without raising an error?',code:null,answer:'discard()',hint:'One method is safe, the other raises KeyError',reveal:'s.remove(x)   → raises KeyError if x not found\ns.discard(x)  → does nothing if x not found (safe!)'},
+  {id:44,cat:'set',diff:'easy',q:'What is the output?',code:'lst = [1, 2, 2, 3, 3, 4]\nprint(list(set(lst)))',answer:'[1, 2, 3, 4]',hint:'Converting to set removes all duplicates',reveal:'list(set([1,2,2,3,3,4]))  →  [1,2,3,4]\nset() removes duplicates, list() converts back.'},
+  {id:45,cat:'set',diff:'medium',q:'What is the output?',code:'a = {1, 2}\nb = {1, 2, 3, 4}\nprint(a.issubset(b))',answer:'True',hint:'issubset: are all items of a inside b?',reveal:'a.issubset(b)  →  True\nAll items of a ({1,2}) are inside b ({1,2,3,4}).'},
+  // ── DICTS ──
+  {id:46,cat:'dct',diff:'easy',q:'What is the output?',code:'d = {"name":"John","age":45}\nprint(d["name"])',answer:'John',hint:'Access value using the key in square brackets',reveal:'d["name"]  →  "John"\nSquare bracket access returns the value for that key.'},
+  {id:47,cat:'dct',diff:'easy',q:'What does get() return if key does NOT exist?',code:'d = {"name":"John"}\nprint(d.get("salary"))',answer:'None',hint:'get() is safe — never crashes on missing keys',reveal:'d.get("salary")  →  None\nd["salary"]  →  KeyError (crash!)\nget() returns None by default if key is missing.'},
+  {id:48,cat:'dct',diff:'easy',q:'What is the output?',code:'d = {"name":"John","age":45}\nprint(list(d.keys()))',answer:"['name', 'age']",hint:'keys() returns all keys in the dictionary',reveal:'list(d.keys())  →  ["name","age"]\nkeys() returns dict_keys. Wrap in list() to see.'},
+  {id:49,cat:'dct',diff:'easy',q:'What is the output?',code:'d = {"a":1,"b":2,"c":3}\nprint(list(d.values()))',answer:'[1, 2, 3]',hint:'values() returns all values in the dictionary',reveal:'list(d.values())  →  [1, 2, 3]\nWrap in list() to see the values.'},
+  {id:50,cat:'dct',diff:'medium',q:'What is the output after adding a key?',code:'d = {"name":"John","age":45}\nd["city"] = "Delhi"\nprint(len(d))',answer:'3',hint:'Adding a new key increases dictionary size by 1',reveal:'After adding "city": d has 3 key-value pairs.\nlen(d)  →  3'},
+  {id:51,cat:'dct',diff:'medium',q:'What does pop() return?',code:'d = {"name":"John","age":45}\nval = d.pop("age")\nprint(val)',answer:'45',hint:'pop() removes the key AND returns its value',reveal:'d.pop("age")  →  returns 45\nDict becomes {"name":"John"}. Key is removed.'},
+  {id:52,cat:'dct',diff:'medium',q:'What is the output?',code:'d = {"name":"John","age":45}\nfor k, v in d.items():\n    print(k, v)',answer:'name John\nage 45',hint:'items() gives both key and value together',reveal:'items()  →  (key, value) pairs\nname John\nage 45'},
+  {id:53,cat:'dct',diff:'hard',q:'What is the output?',code:'d = {"a":1,"b":2,"c":3}\nr = {k:v**2 for k,v in d.items()}\nprint(r)',answer:"{'a': 1, 'b': 4, 'c': 9}",hint:'This is a dictionary comprehension',reveal:'{k:v**2 for k,v in d.items()}  →  {"a":1,"b":4,"c":9}\nDict comprehension transforms each key-value pair.'},
+  {id:54,cat:'dct',diff:'hard',q:'What does setdefault() do?',code:'d = {"name":"John"}\nd.setdefault("age", 0)\nd.setdefault("name","X")\nprint(d)',answer:"{'name': 'John', 'age': 0}",hint:'setdefault only sets key if it does NOT already exist',reveal:'setdefault("age",0)    → adds age=0 (key was missing)\nsetdefault("name","X") → does nothing (key exists)\nResult: {"name":"John","age":0}'},
+  {id:55,cat:'dct',diff:'medium',q:'What is the output?',code:'d = {"a":1,"b":2}\nd.update({"b":99,"c":3})\nprint(d)',answer:"{'a': 1, 'b': 99, 'c': 3}",hint:'update() merges another dict — overwrites existing keys',reveal:'d.update({"b":99,"c":3})  →  {"a":1,"b":99,"c":3}\nExisting key "b" is updated. New key "c" is added.'},
+  // ── BUILT-INS ──
+  {id:56,cat:'blt',diff:'easy',q:'What is the output?',code:'print(abs(-42))',answer:'42',hint:'abs() removes the negative sign',reveal:'abs(-42)  →  42\nabs() returns the absolute (positive) value.'},
+  {id:57,cat:'blt',diff:'easy',q:'What is the output?',code:'print(list(range(1, 6)))',answer:'[1, 2, 3, 4, 5]',hint:'range(start, stop) — stop is NOT included',reveal:'list(range(1,6))  →  [1, 2, 3, 4, 5]\nrange(1,6) generates 1 up to (not including) 6.'},
+  {id:58,cat:'blt',diff:'easy',q:'What is the output?',code:'print(type([1,2,3]))',answer:"<class 'list'>",hint:'type() returns the data type of any value',reveal:"type([1,2,3])  →  <class 'list'>\ntype() tells you what kind of object something is."},
+  {id:59,cat:'blt',diff:'medium',q:'What is the output?',code:'lst = [0, 1, 2, 3]\nprint(any(lst))',answer:'True',hint:'any() — True if at least ONE item is truthy',reveal:'any([0,1,2,3])  →  True\n0 is falsy but 1,2,3 are truthy.\nany() needs at least one truthy item.'},
+  {id:60,cat:'blt',diff:'medium',q:'What is the output?',code:'lst = [0, 1, 2]\nprint(all(lst))',answer:'False',hint:'all() — True only if EVERY item is truthy',reveal:'all([0,1,2])  →  False\n0 is falsy, so all() returns False.\nNeeds every item to be truthy.'},
+  {id:61,cat:'blt',diff:'medium',q:'What is the output?',code:'words = ["banana","apple","kiwi"]\nprint(min(words, key=len))',answer:'kiwi',hint:'min with key=len finds the shortest item',reveal:'min(words, key=len)  →  "kiwi"\nkiwi=4, apple=5, banana=6. Min by length = kiwi.'},
+  {id:62,cat:'blt',diff:'medium',q:'What is the output?',code:'print(round(3.14159, 2))',answer:'3.14',hint:'round(number, decimal_places)',reveal:'round(3.14159, 2)  →  3.14\nRounds to 2 decimal places.'},
+  {id:63,cat:'blt',diff:'hard',q:'What is the output?',code:'lst = [1,2,3]\ndoubled = list(map(lambda x: x*2, lst))\nprint(doubled)',answer:'[2, 4, 6]',hint:'map applies a function to every item in the list',reveal:'map(lambda x: x*2, [1,2,3])  →  [2,4,6]\nmap() applies the function to every item.'},
+  {id:64,cat:'blt',diff:'hard',q:'What is the output?',code:'lst = [1,2,3,4,5]\nevens = list(filter(lambda x: x%2==0, lst))\nprint(evens)',answer:'[2, 4]',hint:'filter() keeps only items where function returns True',reveal:'filter(lambda x: x%2==0, lst)  →  [2,4]\nfilter() keeps items where lambda returns True.'},
+  {id:65,cat:'blt',diff:'hard',q:'What is the output?',code:'lst = [3,1,4,1,5]\nprint(list(reversed(lst)))',answer:'[5, 1, 4, 1, 3]',hint:'reversed() returns an iterator in reverse order',reveal:'list(reversed([3,1,4,1,5]))  →  [5,1,4,1,3]\nreversed() returns a reverse iterator.'},
+  {id:66,cat:'blt',diff:'medium',q:'What is the output?',code:'for i, v in enumerate(["a","b","c"], start=1):\n    print(i, v)',answer:'1 a\n2 b\n3 c',hint:'enumerate gives index + value, start=1 makes it 1-based',reveal:'enumerate(["a","b","c"], start=1)\n→ (1,"a"), (2,"b"), (3,"c")\nGives 1-based index + value pairs.'},
+  {id:67,cat:'blt',diff:'medium',q:'What is the output?',code:'a = ["John","Alice"]\nb = [45, 30]\nfor n, age in zip(a, b):\n    print(n, age)',answer:'John 45\nAlice 30',hint:'zip pairs items from two lists together',reveal:'zip(["John","Alice"],[45,30])\n→ ("John",45), ("Alice",30)\nzip() pairs items from two lists together.'},
+  {id:68,cat:'blt',diff:'easy',q:'What is the output?',code:'print(isinstance(42, int))',answer:'True',hint:'isinstance checks if a value is of a given type',reveal:'isinstance(42, int)  →  True\nisinstance(42, str)  →  False\nisinstance() checks the data type safely.'},
+  {id:69,cat:'blt',diff:'easy',q:'What is the output?',code:'print(int("42"))',answer:'42',hint:'int() converts a string to an integer',reveal:'int("42")  →  42\nConverts string "42" to the integer 42.'},
+  {id:70,cat:'blt',diff:'medium',q:'What is the output?',code:'lst = [4, 2, 9, 1]\nprint(sum(lst))',answer:'16',hint:'sum() adds all items in the list',reveal:'sum([4,2,9,1])  →  16\nsum() adds all numeric items together.'},
+];
+
+// ══════════════════════════════════════════════════════
+//  STATE
+// ══════════════════════════════════════════════════════
+let state = {
+  mode: 'type',
+  curId: 1,
+  correct: 0, wrong: 0, streak: 0, total: 0,
+  answered: false,
+  results: {},     // id -> 'ok' | 'bad'
+  sbCat: 'all',
+  sbSearch: '',
+  pool: [],        // ordered list of ids for next/prev
+  poolIdx: 0,
+};
+
+// ══════════════════════════════════════════════════════
+//  INIT
+// ══════════════════════════════════════════════════════
+function init() {
+  buildPool();
+  renderIndex();
+  jumpTo(Q[0].id);
+  renderStreak();
+}
+
+function buildPool(shuffled) {
+  let filtered = Q.filter(q => state.sbCat === 'all' || q.cat === state.sbCat);
+  if (shuffled) filtered = filtered.sort(() => Math.random() - .5);
+  state.pool = filtered.map(q => q.id);
+  state.poolIdx = state.pool.indexOf(state.curId);
+  if (state.poolIdx < 0) state.poolIdx = 0;
+  updateProgress();
+}
+
+// ══════════════════════════════════════════════════════
+//  SIDEBAR INDEX
+// ══════════════════════════════════════════════════════
+function renderIndex() {
+  const search = state.sbSearch.toLowerCase();
+  const list = document.getElementById('q-index-list');
+  let filtered = Q.filter(q => {
+    const catOk = state.sbCat === 'all' || q.cat === state.sbCat;
+    const searchOk = !search || q.q.toLowerCase().includes(search) ||
+      (q.code && q.code.toLowerCase().includes(search));
+    return catOk && searchOk;
+  });
+
+  if (!filtered.length) {
+    list.innerHTML = '<div class="no-results">No questions found</div>';
+    return;
+  }
+
+  list.innerHTML = filtered.map((q, i) => {
+    const res = state.results[q.id];
+    const statusIcon = res === 'ok' ? '✓' : res === 'bad' ? '✗' : '';
+    const statusColor = res === 'ok' ? 'color:#3ecf8e' : res === 'bad' ? 'color:#e05c6a' : '';
+    const activeClass = q.id === state.curId ? ' active-q' : '';
+    const doneClass = res === 'ok' ? ' done-ok' : res === 'bad' ? ' done-bad' : '';
+    return `<div class="q-index-item${activeClass}${doneClass}" id="qi-${q.id}" onclick="jumpTo(${q.id})">
+      <span class="qi-num">${i + 1}</span>
+      <div class="qi-body">
+        <div class="qi-text">${q.q}${q.code ? ' <span style="color:var(--muted)">— code</span>' : ''}</div>
+        <div class="qi-tags">
+          <span class="qi-tag ${q.cat}">${q.cat.toUpperCase()}</span>
+          <span class="qi-tag ${q.diff.slice(0,3)}">${q.diff}</span>
+        </div>
+      </div>
+      <span class="qi-status" style="${statusColor}">${statusIcon}</span>
+    </div>`;
+  }).join('');
+}
+
+function filterIndex() {
+  state.sbSearch = document.getElementById('sb-search').value;
+  renderIndex();
+}
+
+function filterCat(cat, el) {
+  state.sbCat = cat;
+  document.querySelectorAll('.sf-btn').forEach(b => b.classList.remove('active'));
+  el.classList.add('active');
+  buildPool();
+  renderIndex();
+}
+
+// ══════════════════════════════════════════════════════
+//  JUMP TO QUESTION
+// ══════════════════════════════════════════════════════
+function jumpTo(id) {
+  state.curId = id;
+  state.answered = false;
+  state.poolIdx = state.pool.indexOf(id);
+  if (state.poolIdx < 0) { state.pool.push(id); state.poolIdx = state.pool.length - 1; }
+  renderQuestion();
+  renderIndex();
+  updateProgress();
+  // scroll sidebar item into view
+  const el = document.getElementById('qi-' + id);
+  if (el) el.scrollIntoView({ block: 'nearest' });
+}
+
+// ══════════════════════════════════════════════════════
+//  RENDER QUESTION
+// ══════════════════════════════════════════════════════
+function renderQuestion() {
+  const q = Q.find(x => x.id === state.curId);
+  if (!q) return;
+  state.answered = false;
+
+  const catNames = { str:'STR', lst:'LIST', set:'SET', dct:'DICT', blt:'BUILT-IN' };
+  const catCls   = { str:'badge-str', lst:'badge-lst', set:'badge-set', dct:'badge-dct', blt:'badge-blt' };
+  document.getElementById('cat-badge').className  = 'badge ' + catCls[q.cat];
+  document.getElementById('cat-badge').textContent = catNames[q.cat];
+  document.getElementById('diff-badge').className  = 'badge badge-' + q.diff;
+  document.getElementById('diff-badge').textContent = q.diff;
+  document.getElementById('q-num').textContent = '#' + q.id;
+  document.getElementById('q-text').textContent = q.q;
+
+  const ce = document.getElementById('q-code');
+  if (q.code) { ce.style.display = 'block'; ce.innerHTML = hl(q.code); }
+  else ce.style.display = 'none';
+
+  renderMode(q);
+}
+
+function renderMode(q) {
+  document.getElementById('mode-type').style.display  = state.mode==='type'  ? 'block' : 'none';
+  document.getElementById('mode-hint').style.display  = state.mode==='hint'  ? 'block' : 'none';
+  document.getElementById('mode-flash').style.display = state.mode==='flash' ? 'block' : 'none';
+
+  if (state.mode === 'type') {
+    const inp = document.getElementById('ans-input');
+    inp.value = ''; inp.className = 'answer-input'; inp.disabled = false;
+    document.getElementById('result-banner').className = 'result-banner';
+    document.getElementById('btn-row').innerHTML = `
+      <button class="btn btn-primary" onclick="checkAnswer()">Check Answer</button>
+      <button class="btn btn-ghost"   onclick="showHintType()">Hint 💡</button>
+      <button class="btn btn-ghost"   onclick="revealType()">Reveal</button>
+      <button class="btn btn-next"    onclick="nextQ()">Next →</button>`;
+    setTimeout(() => inp.focus(), 50);
+  }
+  if (state.mode === 'hint') {
+    document.getElementById('hint-box').className    = 'hint-box';
+    document.getElementById('hint-box').textContent  = q.hint;
+    document.getElementById('ans-reveal').className  = 'answer-reveal';
+    document.getElementById('ans-reveal').textContent = q.reveal;
+    document.getElementById('btn-row').innerHTML = `
+      <button class="btn btn-warn"    onclick="showHint()">Show Hint 💡</button>
+      <button class="btn btn-success" onclick="showReveal()">Show Answer ✓</button>
+      <button class="btn btn-next"    onclick="nextQ()">Next →</button>`;
+  }
+  if (state.mode === 'flash') {
+    document.getElementById('flashcard').className = 'flashcard';
+    document.getElementById('fc-front').textContent = q.q + (q.code ? '\n\n' + q.code : '');
+    document.getElementById('fc-back').textContent  = q.reveal;
+    document.getElementById('btn-row').innerHTML = `
+      <button class="btn btn-success" onclick="markOk()">✓ Got it</button>
+      <button class="btn btn-ghost"   onclick="markNo()">✗ Missed</button>
+      <button class="btn btn-next"    onclick="nextQ()">Next →</button>`;
+  }
+}
+
+// ══════════════════════════════════════════════════════
+//  ANSWER CHECKING
+// ══════════════════════════════════════════════════════
+function checkAnswer() {
+  if (state.answered) return;
+  const q = Q.find(x => x.id === state.curId);
+  const inp = document.getElementById('ans-input');
+  const user    = inp.value.trim().toLowerCase().replace(/\s+/g,' ');
+  const correct = q.answer.toLowerCase().replace(/\s+/g,' ');
+  const ok = user === correct || (user.length > 3 && correct.includes(user));
+  const banner = document.getElementById('result-banner');
+  if (ok) {
+    inp.className = 'answer-input correct';
+    banner.className = 'result-banner show ok';
+    banner.textContent = '✓ Correct!  ' + q.reveal.split('\n')[0];
+    record(true);
+  } else {
+    inp.className = 'answer-input wrong';
+    banner.className = 'result-banner show bad';
+    banner.innerHTML = '✗ Not quite. Answer: <strong>' + q.answer + '</strong>';
+    record(false);
+  }
+  state.answered = true; inp.disabled = true;
+}
+
+function showHintType() {
+  const q = Q.find(x => x.id === state.curId);
+  const b = document.getElementById('result-banner');
+  b.className = 'result-banner show info';
+  b.textContent = '💡 ' + q.hint;
+}
+function revealType() {
+  const q = Q.find(x => x.id === state.curId);
+  const b = document.getElementById('result-banner');
+  b.className = 'result-banner show info';
+  b.textContent = q.reveal;
+  if (!state.answered) record(false);
+  state.answered = true;
+}
+function showHint()   { document.getElementById('hint-box').className = 'hint-box show'; }
+function showReveal() { document.getElementById('hint-box').className = 'hint-box show'; document.getElementById('ans-reveal').className = 'answer-reveal show'; }
+function flipCard()   { document.getElementById('flashcard').classList.toggle('flipped'); }
+function markOk()     { record(true);  nextQ(); }
+function markNo()     { record(false); nextQ(); }
+
+// ══════════════════════════════════════════════════════
+//  NAVIGATION
+// ══════════════════════════════════════════════════════
+function nextQ() {
+  state.poolIdx++;
+  if (state.poolIdx >= state.pool.length) state.poolIdx = 0;
+  jumpTo(state.pool[state.poolIdx]);
+}
+
+function shuffle() {
+  buildPool(true);
+  jumpTo(state.pool[0]);
+}
+
+// ══════════════════════════════════════════════════════
+//  SCORE & PROGRESS
+// ══════════════════════════════════════════════════════
+function record(ok) {
+  state.total++;
+  if (ok) { state.correct++; state.streak++; state.results[state.curId] = 'ok'; }
+  else    { state.wrong++;   state.streak = 0; state.results[state.curId] = 'bad'; }
+  updateScores();
+  renderIndex(); // refresh status icons
+}
+
+function updateScores() {
+  document.getElementById('sc-correct').textContent = state.correct;
+  document.getElementById('sc-wrong').textContent   = state.wrong;
+  document.getElementById('sc-streak').textContent  = state.streak;
+  const p = state.total > 0 ? Math.round((state.correct/state.total)*100) : 0;
+  document.getElementById('sc-pct').textContent     = p + '%';
+  document.getElementById('hdr-streak').textContent  = state.streak;
+  document.getElementById('hdr-correct').textContent = state.correct;
+  document.getElementById('hdr-total').textContent   = state.total;
+  renderStreak();
+}
+
+function updateProgress() {
+  const total = state.pool.length;
+  const idx   = state.poolIdx >= 0 ? state.poolIdx : 0;
+  const pct   = total > 0 ? Math.round(((idx+1)/total)*100) : 0;
+  document.getElementById('prog-fill').style.width = pct + '%';
+  document.getElementById('prog-label').textContent = (idx+1) + ' / ' + total;
+}
+
+function renderStreak() {
+  let h = '';
+  for (let i = 0; i < 5; i++)
+    h += `<div class="streak-dot${i < state.streak ? ' on' : ''}"></div>`;
+  document.getElementById('streak-dots').innerHTML = h;
+}
+
+// ══════════════════════════════════════════════════════
+//  UI CONTROLS
+// ══════════════════════════════════════════════════════
+function toggleSidebar() {
+  const sb  = document.getElementById('sidebar');
+  const btn = document.getElementById('sidebar-toggle');
+  sb.classList.toggle('hidden');
+  btn.classList.toggle('active');
+}
+
+function setMode(mode, el) {
+  state.mode = mode;
+  document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+  el.classList.add('active');
+  renderQuestion();
+}
+
+// ══════════════════════════════════════════════════════
+//  SYNTAX HIGHLIGHT
+// ══════════════════════════════════════════════════════
+function hl(code) {
+  return code
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/(#.*)/g,'<span class="cm">$1</span>')
+    .replace(/\b(print|len|range|type|list|set|dict|int|str|float|sorted|reversed|map|filter|enumerate|zip|sum|max|min|abs|round|any|all|isinstance)\b/g,'<span class="fn">$1</span>')
+    .replace(/\b(for|in|if|else|elif|return|def|lambda|not|and|or|True|False|None|import|from|as|while|break|continue)\b/g,'<span class="kw">$1</span>')
+    .replace(/"([^"]*)"/g,'<span class="st">"$1"</span>')
+    .replace(/'([^']*)'/g,"<span class='st'>'$1'</span>")
+    .replace(/\b(\d+)\b/g,'<span class="nm">$1</span>');
+}
+
+init();
+</script>
+</body>
+</html>
