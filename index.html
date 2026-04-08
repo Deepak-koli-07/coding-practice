@@ -307,7 +307,7 @@ const Q = [
   {id:1,cat:'str',diff:'easy',q:'What does strip() do?',code:null,answer:'removes whitespace (or a given char) from both sides',hint:'Think about spaces at the start and end',reveal:'"  hello  ".strip()  →  "hello"\nRemoves whitespace (or a given char) from both sides.'},
   {id:2,cat:'str',diff:'easy',q:'What is the output?',code:'"  Python  ".strip()',answer:'Python',hint:'strip() removes surrounding whitespace',reveal:'"  Python  ".strip()  →  "Python"'},
   {id:3,cat:'str',diff:'easy',q:'What does split() return?',code:'"John,45,Texas".split(",")',answer:"['John', '45', 'Texas']",hint:'split always returns a list',reveal:'"John,45,Texas".split(",")  →  [\'John\',\'45\',\'Texas\']\nsplit() breaks a string into a list using the separator.'},
-  {id:4,cat:'str',diff:'easy',q:'What is the output?',code:'" ".join(["Hello", "World"])',answer:'Hello World',hint:'join is the opposite of split — joins list into string',reveal:'" ".join(["Hello","World"])  →  "Hello World"\nJoins list items into one string with the separator.'},
+  {id:4,cat:'str',diff:'easy',q:'What is the output?',code:'" ".join(["Hello", "World"])',answer:'"Hello World"',hint:'join is the opposite of split — joins list into string',reveal:'" ".join(["Hello","World"])  →  "Hello World"\nJoins list items into one string with the separator.'},
   {id:5,cat:'str',diff:'easy',q:'What is the output?',code:'"medicare".upper()',answer:'MEDICARE',hint:'upper() converts all letters to uppercase',reveal:'"medicare".upper()  →  "MEDICARE"'},
   {id:6,cat:'str',diff:'easy',q:'What is the output?',code:'"MEDICARE".lower()',answer:'medicare',hint:'lower() converts all to lowercase',reveal:'"MEDICARE".lower()  →  "medicare"'},
   {id:7,cat:'str',diff:'easy',q:'What is the output?',code:'"medicare advantage".title()',answer:'Medicare Advantage',hint:'title() capitalizes the first letter of each word',reveal:'"medicare advantage".title()  →  "Medicare Advantage"'},
@@ -816,9 +816,10 @@ Format: {"correct": true or false, "feedback": "one sentence if wrong, empty str
 Rules:
 - IGNORE spelling mistakes, typos, and grammar errors completely — they do not matter
 - IGNORE informal phrasing — "it remove" means "it removes", treat them the same
+- For output questions, treat quoted and unquoted strings as equivalent — "Hello World" and Hello World are both correct
 - Accept answers that convey the correct meaning even if worded differently
 - Only mark wrong if the actual Python concept or meaning is incorrect or missing
-- feedback must explain the conceptual mistake only, never mention spelling or grammar`;
+- feedback must explain the conceptual mistake only, never mention spelling, grammar, or quotes`;
 
   const userPrompt = `Question: ${question}${code ? '\nCode:\n' + code : ''}
 Expected answer: ${correct}
