@@ -316,8 +316,8 @@ const Q = [
   {id:10,cat:'str',diff:'medium',q:'What is the output?',code:'"Medicare Advantage".endswith("Plan")',answer:'False',hint:'endswith checks the END of the string',reveal:'"Medicare Advantage".endswith("Plan")  →  False\nThe string ends with "Advantage", not "Plan".'},
   {id:11,cat:'str',diff:'medium',q:'What is the output?',code:'"the cat sat on the mat".count("at")',answer:'3',hint:'count() counts all occurrences of the substring',reveal:'"the cat sat on the mat".count("at")  →  3\n(c-at, s-at, m-at)'},
   {id:12,cat:'str',diff:'medium',q:'What is the output?',code:'"hello world".replace("world", "Python")',answer:'"hello Python"',hint:'replace(old, new) replaces all occurrences',reveal:'"hello world".replace("world","Python")  →  "hello Python"'},
-  {id:13,cat:'str',diff:'hard',q:'What is the output?',code:'"Python"[::-1]',answer:'nohtyP',hint:'[::-1] reverses any sequence in Python',reveal:'"Python"[::-1]  →  "nohtyP"\nSlicing with step -1 reverses the string.'},
-  {id:14,cat:'str',diff:'hard',q:'What is the output?',code:'"42".zfill(5)',answer:'00042',hint:'zfill pads with leading zeros on the left',reveal:'"42".zfill(5)  →  "00042"\nAdds zeros on left until length reaches 5.'},
+  {id:13,cat:'str',diff:'hard',q:'What is the output?',code:'"Python"[::-1]',answer:'"nohtyP"',hint:'[::-1] reverses any sequence in Python',reveal:'"Python"[::-1]  →  "nohtyP"\nSlicing with step -1 reverses the string.'},
+  {id:14,cat:'str',diff:'hard',q:'What is the output?',code:'"42".zfill(5)',answer:'"00042"',hint:'zfill pads with leading zeros on the left',reveal:'"42".zfill(5)  →  "00042"\nAdds zeros on left until length reaches 5.'},
   {id:15,cat:'str',diff:'medium',q:'What is the output?',code:'"123".isdigit()',answer:'True',hint:'isdigit() returns True only if all characters are 0-9',reveal:'"123".isdigit()  →  True\n"12a".isdigit()  →  False'},
   {id:16,cat:'str',diff:'medium',q:'What is the output?',code:'"hello".isalpha()',answer:'True',hint:'isalpha() checks if all characters are letters',reveal:'"hello".isalpha()   →  True\n"hello1".isalpha()  →  False'},
   {id:17,cat:'str',diff:'easy',q:'What is the output?',code:'"Medicare"[0:4]',answer:'"Medi"',hint:'Slicing: start included, stop NOT included',reveal:'"Medicare"[0:4]  →  "Medi"\nIndex 0=M,1=e,2=d,3=i. Index 4 not included.'},
@@ -597,7 +597,8 @@ async function checkAnswer() {
   let ok = answersMatch(inp.value, q.answer);
   let aiFeedback = '';
 
-  if (hasAI) {
+  // Only call AI when string matching fails — never let AI override a correct match
+  if (!ok && hasAI) {
     const result = await checkWithGroq(q.q, q.code, q.answer, inp.value);
     if (result !== null) {
       ok = result.correct;
