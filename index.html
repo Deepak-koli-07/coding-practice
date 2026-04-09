@@ -305,24 +305,24 @@ header{position:relative;z-index:20;display:flex;align-items:center;justify-cont
 const Q = [
   // ── STRINGS ──
   {id:1,cat:'str',diff:'easy',q:'What does strip() do?',code:null,answer:'removes whitespace (or a given char) from both sides',hint:'Think about spaces at the start and end',reveal:'"  hello  ".strip()  →  "hello"\nRemoves whitespace (or a given char) from both sides.'},
-  {id:2,cat:'str',diff:'easy',q:'What is the output?',code:'"  Python  ".strip()',answer:'Python',hint:'strip() removes surrounding whitespace',reveal:'"  Python  ".strip()  →  "Python"'},
+  {id:2,cat:'str',diff:'easy',q:'What is the output?',code:'"  Python  ".strip()',answer:'"Python"',hint:'strip() removes surrounding whitespace',reveal:'"  Python  ".strip()  →  "Python"'},
   {id:3,cat:'str',diff:'easy',q:'What does split() return?',code:'"John,45,Texas".split(",")',answer:"['John', '45', 'Texas']",hint:'split always returns a list',reveal:'"John,45,Texas".split(",")  →  [\'John\',\'45\',\'Texas\']\nsplit() breaks a string into a list using the separator.'},
   {id:4,cat:'str',diff:'easy',q:'What is the output?',code:'" ".join(["Hello", "World"])',answer:'"Hello World"',hint:'join is the opposite of split — joins list into string',reveal:'" ".join(["Hello","World"])  →  "Hello World"\nJoins list items into one string with the separator.'},
-  {id:5,cat:'str',diff:'easy',q:'What is the output?',code:'"medicare".upper()',answer:'MEDICARE',hint:'upper() converts all letters to uppercase',reveal:'"medicare".upper()  →  "MEDICARE"'},
-  {id:6,cat:'str',diff:'easy',q:'What is the output?',code:'"MEDICARE".lower()',answer:'medicare',hint:'lower() converts all to lowercase',reveal:'"MEDICARE".lower()  →  "medicare"'},
-  {id:7,cat:'str',diff:'easy',q:'What is the output?',code:'"medicare advantage".title()',answer:'Medicare Advantage',hint:'title() capitalizes the first letter of each word',reveal:'"medicare advantage".title()  →  "Medicare Advantage"'},
+  {id:5,cat:'str',diff:'easy',q:'What is the output?',code:'"medicare".upper()',answer:'"MEDICARE"',hint:'upper() converts all letters to uppercase',reveal:'"medicare".upper()  →  "MEDICARE"'},
+  {id:6,cat:'str',diff:'easy',q:'What is the output?',code:'"MEDICARE".lower()',answer:'"medicare"',hint:'lower() converts all to lowercase',reveal:'"MEDICARE".lower()  →  "medicare"'},
+  {id:7,cat:'str',diff:'easy',q:'What is the output?',code:'"medicare advantage".title()',answer:'"Medicare Advantage"',hint:'title() capitalizes the first letter of each word',reveal:'"medicare advantage".title()  →  "Medicare Advantage"'},
   {id:8,cat:'str',diff:'medium',q:'What does find() return if the substring is NOT found?',code:'"hello".find("xyz")',answer:'-1',hint:'find() is safe — never crashes on missing values',reveal:'"hello".find("xyz")  →  -1\nfind() returns -1 when not found.\nindex() would raise ValueError instead.'},
   {id:9,cat:'str',diff:'medium',q:'What is the output?',code:'"Medicare Advantage".startswith("Medicare")',answer:'True',hint:'startswith checks the beginning of the string',reveal:'"Medicare Advantage".startswith("Medicare")  →  True'},
   {id:10,cat:'str',diff:'medium',q:'What is the output?',code:'"Medicare Advantage".endswith("Plan")',answer:'False',hint:'endswith checks the END of the string',reveal:'"Medicare Advantage".endswith("Plan")  →  False\nThe string ends with "Advantage", not "Plan".'},
   {id:11,cat:'str',diff:'medium',q:'What is the output?',code:'"the cat sat on the mat".count("at")',answer:'3',hint:'count() counts all occurrences of the substring',reveal:'"the cat sat on the mat".count("at")  →  3\n(c-at, s-at, m-at)'},
-  {id:12,cat:'str',diff:'medium',q:'What is the output?',code:'"hello world".replace("world", "Python")',answer:'hello Python',hint:'replace(old, new) replaces all occurrences',reveal:'"hello world".replace("world","Python")  →  "hello Python"'},
+  {id:12,cat:'str',diff:'medium',q:'What is the output?',code:'"hello world".replace("world", "Python")',answer:'"hello Python"',hint:'replace(old, new) replaces all occurrences',reveal:'"hello world".replace("world","Python")  →  "hello Python"'},
   {id:13,cat:'str',diff:'hard',q:'What is the output?',code:'"Python"[::-1]',answer:'nohtyP',hint:'[::-1] reverses any sequence in Python',reveal:'"Python"[::-1]  →  "nohtyP"\nSlicing with step -1 reverses the string.'},
   {id:14,cat:'str',diff:'hard',q:'What is the output?',code:'"42".zfill(5)',answer:'00042',hint:'zfill pads with leading zeros on the left',reveal:'"42".zfill(5)  →  "00042"\nAdds zeros on left until length reaches 5.'},
   {id:15,cat:'str',diff:'medium',q:'What is the output?',code:'"123".isdigit()',answer:'True',hint:'isdigit() returns True only if all characters are 0-9',reveal:'"123".isdigit()  →  True\n"12a".isdigit()  →  False'},
   {id:16,cat:'str',diff:'medium',q:'What is the output?',code:'"hello".isalpha()',answer:'True',hint:'isalpha() checks if all characters are letters',reveal:'"hello".isalpha()   →  True\n"hello1".isalpha()  →  False'},
-  {id:17,cat:'str',diff:'easy',q:'What is the output?',code:'"Medicare"[0:4]',answer:'Medi',hint:'Slicing: start included, stop NOT included',reveal:'"Medicare"[0:4]  →  "Medi"\nIndex 0=M,1=e,2=d,3=i. Index 4 not included.'},
-  {id:18,cat:'str',diff:'medium',q:'What is the output?',code:'"  spaces  ".lstrip()',answer:'spaces  ',hint:'lstrip removes whitespace from LEFT only',reveal:'"  spaces  ".lstrip()  →  "spaces  "\nOnly removes left side spaces. rstrip() removes right.'},
-  {id:19,cat:'str',diff:'medium',q:'What is the output?',code:'"hello world".capitalize()',answer:'Hello world',hint:'capitalize() only changes the FIRST letter of the string',reveal:'"hello world".capitalize()  →  "Hello world"\nOnly first letter becomes uppercase. title() does each word.'},
+  {id:17,cat:'str',diff:'easy',q:'What is the output?',code:'"Medicare"[0:4]',answer:'"Medi"',hint:'Slicing: start included, stop NOT included',reveal:'"Medicare"[0:4]  →  "Medi"\nIndex 0=M,1=e,2=d,3=i. Index 4 not included.'},
+  {id:18,cat:'str',diff:'medium',q:'What is the output?',code:'"  spaces  ".lstrip()',answer:'"spaces  "',hint:'lstrip removes whitespace from LEFT only',reveal:'"  spaces  ".lstrip()  →  "spaces  "\nOnly removes left side spaces. rstrip() removes right.'},
+  {id:19,cat:'str',diff:'medium',q:'What is the output?',code:'"hello world".capitalize()',answer:'"Hello world"',hint:'capitalize() only changes the FIRST letter of the string',reveal:'"hello world".capitalize()  →  "Hello world"\nOnly first letter becomes uppercase. title() does each word.'},
   {id:20,cat:'str',diff:'hard',q:'What is the output?',code:'"a-b-c-d".split("-", 2)',answer:"['a', 'b', 'c-d']",hint:'The second argument limits how many splits happen',reveal:'"a-b-c-d".split("-", 2)  →  [\'a\',\'b\',\'c-d\']\nSplits at most 2 times. Remaining stays as one string.'},
   // ── LISTS ──
   {id:21,cat:'lst',diff:'easy',q:'What is the output?',code:'lst = [1, 2, 3]\nlst.append(4)\nprint(lst)',answer:'[1, 2, 3, 4]',hint:'append adds ONE item to the end',reveal:'lst.append(4)  →  [1, 2, 3, 4]\nappend() adds one item to the end of the list.'},
@@ -816,7 +816,7 @@ Format: {"correct": true or false, "feedback": "one sentence if wrong, empty str
 Rules:
 - IGNORE spelling mistakes, typos, and grammar errors completely — they do not matter
 - IGNORE informal phrasing — "it remove" means "it removes", treat them the same
-- For "What is the output?" questions, be strict about the exact output — if the output includes quotes, the student must include them
+- For "What is the output?" questions without print(), string outputs appear with quotes in Python (e.g. "MEDICARE") — require the student to include them. For questions with print(), quotes are not shown
 - Accept answers that convey the correct meaning even if worded differently
 - Only mark wrong if the actual Python concept or meaning is incorrect or missing
 - feedback must explain the conceptual mistake only, never mention spelling or grammar`;
