@@ -162,8 +162,17 @@ header{position:relative;z-index:20;display:flex;align-items:center;justify-cont
 
 .hint-box{display:none;background:rgba(245,166,35,.07);border:1px solid rgba(245,166,35,.25);border-radius:7px;padding:10px 14px;font-size:12px;color:#f5a623;margin-top:10px;font-family:'JetBrains Mono',monospace;}
 .hint-box.show{display:block;}
-.answer-reveal{display:none;background:var(--code-bg);border:1px solid var(--border);border-radius:7px;padding:13px 15px;font-family:'JetBrains Mono',monospace;font-size:13px;color:#c9d0e8;margin-top:10px;line-height:1.7;white-space:pre-wrap;}
+.answer-reveal{display:none;background:var(--code-bg);border:1px solid var(--border);border-radius:7px;padding:13px 15px;font-family:'JetBrains Mono',monospace;font-size:13px;color:#c9d0e8;margin-top:10px;line-height:1.7;}
 .answer-reveal.show{display:block;}
+/* REVEAL FORMATTED OUTPUT */
+.reveal-table{width:100%;border-collapse:collapse;font-size:12px;margin:6px 0 8px;}
+.reveal-table th{background:rgba(91,141,239,.12);color:#8ab4f8;font-weight:700;padding:5px 10px;text-align:left;border-bottom:1px solid var(--border);white-space:nowrap;}
+.reveal-table td{padding:4px 10px;border-bottom:1px solid rgba(42,47,66,.5);color:var(--text);white-space:nowrap;}
+.reveal-table tr:last-child td{border-bottom:none;}
+.rv-gap{height:7px;}
+.rv-head{font-weight:700;color:var(--accent3);margin-top:4px;line-height:1.8;}
+.rv-line{line-height:1.7;}
+.rv-reveal-block{margin-top:8px;font-size:12px;font-family:'JetBrains Mono',monospace;font-weight:400;color:#c9d0e8;}
 
 /* FLASHCARD */
 .flashcard-wrap{perspective:1000px;margin-top:12px;cursor:pointer;}
@@ -171,7 +180,7 @@ header{position:relative;z-index:20;display:flex;align-items:center;justify-cont
 .flashcard.flipped{transform:rotateY(180deg);}
 .fc-front,.fc-back{position:absolute;inset:0;backface-visibility:hidden;border-radius:8px;padding:20px;display:flex;align-items:center;justify-content:center;text-align:center;min-height:140px;}
 .fc-front{background:rgba(245,166,35,.08);border:1px solid rgba(245,166,35,.2);font-size:15px;font-weight:700;}
-.fc-back{background:rgba(62,207,142,.08);border:1px solid rgba(62,207,142,.2);transform:rotateY(180deg);font-family:'JetBrains Mono',monospace;font-size:12px;color:#c9d0e8;line-height:1.7;white-space:pre-wrap;text-align:left;}
+.fc-back{background:rgba(62,207,142,.08);border:1px solid rgba(62,207,142,.2);transform:rotateY(180deg);font-family:'JetBrains Mono',monospace;font-size:12px;color:#c9d0e8;line-height:1.7;text-align:left;overflow-y:auto;}
 .fc-hint{text-align:center;font-size:11px;color:var(--muted);margin-top:7px;font-family:'JetBrains Mono',monospace;}
 
 /* BUTTONS */
@@ -951,7 +960,7 @@ function renderQuestion() {
     document.getElementById('hint-box').className    = 'hint-box';
     document.getElementById('hint-box').textContent  = q.hint;
     document.getElementById('ans-reveal').className  = 'answer-reveal';
-    document.getElementById('ans-reveal').textContent = q.reveal;
+    document.getElementById('ans-reveal').innerHTML   = formatReveal(q.reveal);
     document.getElementById('btn-row').innerHTML = `
       <button class="btn btn-warn"    onclick="showHint()">Show Hint 💡</button>
       <button class="btn btn-success" onclick="showReveal()">Show Answer ✓</button>
@@ -961,13 +970,72 @@ function renderQuestion() {
   if (state.mode === 'flash') {
     document.getElementById('flashcard').className = 'flashcard';
     document.getElementById('fc-front').textContent = q.q;
-    document.getElementById('fc-back').textContent  = q.reveal;
+    document.getElementById('fc-back').innerHTML    = formatReveal(q.reveal);
     document.getElementById('btn-row').innerHTML = `
       <button class="btn btn-success" onclick="markOk()">✓ Got it</button>
       <button class="btn btn-ghost"   onclick="markNo()">✗ Missed</button>
       <button class="btn btn-ghost"   onclick="prevQ()">← Prev</button>
       <button class="btn btn-next"    onclick="nextQ()">Next →</button>`;
   }
+}
+
+// ══════════════════════════════════════════════════════
+//  REVEAL FORMATTER  — converts text with \n and pipe tables to HTML
+// ══════════════════════════════════════════════════════
+function escHtml(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function buildRevealTable(lines) {
+  const isSep = l => /^[\s\-\|:=+]+$/.test(l);
+  const parseCells = l => {
+    const parts = l.split('|').map(c => c.trim());
+    if (parts[0] === '') parts.shift();
+    if (parts[parts.length-1] === '') parts.pop();
+    return parts;
+  };
+  const headerLine = lines.find(l => !isSep(l));
+  if (!headerLine) return '';
+  const hCells = parseCells(headerLine);
+  const hIdx   = lines.indexOf(headerLine);
+  let html = '<table class="reveal-table"><thead><tr>';
+  hCells.forEach(h => { html += `<th>${escHtml(h)}</th>`; });
+  html += '</tr></thead><tbody>';
+  for (let i = hIdx+1; i < lines.length; i++) {
+    if (isSep(lines[i])) continue;
+    const cells = parseCells(lines[i]);
+    if (!cells.length) continue;
+    html += '<tr>';
+    cells.forEach(c => { html += `<td>${escHtml(c)}</td>`; });
+    html += '</tr>';
+  }
+  return html + '</tbody></table>';
+}
+
+function formatReveal(text) {
+  if (!text) return '';
+  const lines = text.split('\n');
+  let html = '';
+  let i = 0;
+  while (i < lines.length) {
+    const line = lines[i];
+    if (line.includes('|')) {
+      // Collect consecutive pipe lines → table
+      const tbl = [];
+      while (i < lines.length && lines[i].includes('|')) { tbl.push(lines[i]); i++; }
+      html += buildRevealTable(tbl);
+      continue;
+    }
+    if (line.trim() === '') {
+      html += '<div class="rv-gap"></div>';
+    } else if (/^[A-Za-z][^|]{0,58}:$/.test(line.trim())) {
+      html += '<div class="rv-head">' + escHtml(line) + '</div>';
+    } else {
+      html += '<div class="rv-line">' + escHtml(line) + '</div>';
+    }
+    i++;
+  }
+  return html;
 }
 
 // ══════════════════════════════════════════════════════
@@ -1019,7 +1087,7 @@ async function checkAnswer() {
     state.answered = true;
     banner.className = 'result-banner show ok';
     banner.innerHTML = '✓ Correct!' + (hasAI ? ' <span style="opacity:.6;font-size:11px">(AI)</span>' : '') +
-      '<br><span style="font-weight:400;white-space:pre-wrap;font-size:12px">' + q.reveal + '</span>';
+      '<div class="rv-reveal-block">' + formatReveal(q.reveal) + '</div>';
     record(true);
   } else {
     inp.className = 'answer-input wrong';
@@ -1028,7 +1096,7 @@ async function checkAnswer() {
     banner.className = 'result-banner show bad';
     banner.innerHTML = '✗ Not quite.' +
       (aiFeedback ? ' <span style="opacity:.75;font-size:12px">💡 ' + aiFeedback + '</span>' : '') +
-      '<br><span style="font-weight:400;opacity:.8;white-space:pre-wrap;font-size:12px">' + q.reveal + '</span>';
+      '<div class="rv-reveal-block" style="opacity:.9">' + formatReveal(q.reveal) + '</div>';
     if (!state.recordedWrong[state.curId]) {
       state.recordedWrong[state.curId] = true;
       record(false);
@@ -1046,7 +1114,7 @@ function revealType() {
   const q = Q.find(x => x.id === state.curId);
   const b = document.getElementById('result-banner');
   b.className = 'result-banner show info';
-  b.textContent = q.reveal;
+  b.innerHTML = '<div class="rv-reveal-block">' + formatReveal(q.reveal) + '</div>';
   if (!state.answered) record(false);
   state.answered = true;
 }
