@@ -519,6 +519,68 @@ const Q = [
    hint:'Calculate conversion rate per job using CASE WHEN, ORDER BY rate DESC, LIMIT 1',
    reveal:"SELECT job,\n  SUM(CASE WHEN response='yes' THEN 1 ELSE 0 END)::numeric\n  / COUNT(*) AS conv_rate\nFROM customers\nGROUP BY job\nORDER BY conv_rate DESC\nLIMIT 1;\n\nResult: salaried (2/2 = 100%)"},
 
+  // ── JOIN OUTPUT QUESTIONS ──
+  {id:21,cat:'jn',diff:'med',type:'concept',
+   q:'How many rows does INNER JOIN return? Table A has values (1,1,2,2,3,4,NULL) and Table B has (1,2,3,4,NULL). JOIN ON A.id = B.id.',
+   schema:{name:'Table A + Table B',cols:['Table A (id)','Table B (id)'],
+     rows:[['1','1'],['1','2'],['2','3'],['2','4'],['3','NULL'],['4',''],['NULL','']]},
+   code:null,
+   answer:'6',
+   hint:'NULL does NOT match NULL in SQL joins. Count how many rows from A find a match in B.',
+   reveal:'INNER JOIN returns only MATCHED rows.\n\nA.id=1 matches B.id=1 → 2 rows (A has two 1s)\nA.id=2 matches B.id=2 → 2 rows (A has two 2s)\nA.id=3 matches B.id=3 → 1 row\nA.id=4 matches B.id=4 → 1 row\nA.id=NULL → NO MATCH (NULL ≠ NULL in SQL!)\n\nTotal: 6 rows\n\nKey rule: NULL = NULL is FALSE in SQL join conditions.'},
+
+  {id:22,cat:'jn',diff:'med',type:'concept',
+   q:'How many rows does LEFT JOIN return? Table A has (1,1,2,2,3,4,NULL) and Table B has (1,2,3,4,NULL). JOIN ON A.id = B.id.',
+   schema:{name:'Table A + Table B',cols:['Table A (id)','Table B (id)'],
+     rows:[['1','1'],['1','2'],['2','3'],['2','4'],['3','NULL'],['4',''],['NULL','']]},
+   code:null,
+   answer:'7',
+   hint:'LEFT JOIN keeps ALL rows from Table A. Unmatched rows get NULL for B columns.',
+   reveal:'LEFT JOIN = all rows from A + matched rows from B.\n\nA.id=1 → matches B → 2 rows\nA.id=2 → matches B → 2 rows\nA.id=3 → matches B → 1 row\nA.id=4 → matches B → 1 row\nA.id=NULL → NO match, but kept! B columns = NULL → 1 row\n\nTotal: 7 rows\n\nA\'s NULL stays but B\'s NULL (unmatched from B side) does NOT appear.'},
+
+  {id:23,cat:'jn',diff:'med',type:'concept',
+   q:'How many rows does RIGHT JOIN return? Table A has (1,1,2,2,3,4,NULL) and Table B has (1,2,3,4,NULL). JOIN ON A.id = B.id.',
+   schema:{name:'Table A + Table B',cols:['Table A (id)','Table B (id)'],
+     rows:[['1','1'],['1','2'],['2','3'],['2','4'],['3','NULL'],['4',''],['NULL','']]},
+   code:null,
+   answer:'7',
+   hint:'RIGHT JOIN keeps ALL rows from Table B. Count B rows + how duplicates from A multiply them.',
+   reveal:'RIGHT JOIN = all rows from B + matched rows from A.\n\nB.id=1 → matches A (two 1s) → 2 rows\nB.id=2 → matches A (two 2s) → 2 rows\nB.id=3 → matches A → 1 row\nB.id=4 → matches A → 1 row\nB.id=NULL → NO match, but kept! A columns = NULL → 1 row\n\nTotal: 7 rows\n\nB\'s NULL stays but A\'s NULL does NOT appear.'},
+
+  {id:24,cat:'jn',diff:'hard',type:'concept',
+   q:'How many rows does FULL OUTER JOIN return? Table A has (1,1,2,2,3,4,NULL) and Table B has (1,2,3,4,NULL). JOIN ON A.id = B.id.',
+   schema:{name:'Table A + Table B',cols:['Table A (id)','Table B (id)'],
+     rows:[['1','1'],['1','2'],['2','3'],['2','4'],['3','NULL'],['4',''],['NULL','']]},
+   code:null,
+   answer:'8',
+   hint:'FULL OUTER = LEFT JOIN + RIGHT JOIN combined. Both unmatched NULLs appear as separate rows.',
+   reveal:'FULL OUTER JOIN = all rows from both sides.\n\nMatched rows:\nA.id=1 + B.id=1 → 2 rows\nA.id=2 + B.id=2 → 2 rows\nA.id=3 + B.id=3 → 1 row\nA.id=4 + B.id=4 → 1 row\n\nUnmatched from A:\nA.id=NULL → kept, B columns = NULL → 1 row\n\nUnmatched from B:\nB.id=NULL → kept, A columns = NULL → 1 row\n\nTotal: 8 rows\n\nBoth NULLs appear as separate unmatched rows!'},
+
+  {id:25,cat:'jn',diff:'easy',type:'concept',
+   q:'Why does NULL not match NULL in a SQL JOIN condition?',
+   schema:null, code:null,
+   answer:'Because NULL represents unknown. In SQL, NULL = NULL evaluates to NULL (unknown), not TRUE. JOIN conditions require TRUE to match rows.',
+   hint:'Think about what NULL means — it is "unknown", not a value.',
+   reveal:'NULL means "unknown value".\n\nNULL = NULL → NULL (unknown), not TRUE\nNULL = 1    → NULL (unknown)\nNULL IS NULL → TRUE  ← this is the correct check\n\nJOIN uses = operator, which returns NULL for any comparison with NULL.\nSince NULL is not TRUE, no match is made.\n\nIf you WANT to match NULLs:\nON (A.id = B.id OR (A.id IS NULL AND B.id IS NULL))'},
+
+  {id:26,cat:'jn',diff:'hard',type:'concept',
+   q:'Table A has (1,1,2,2,3,4,NULL) and Table B has (1,2,3,4,NULL). How many rows does a CROSS JOIN return?',
+   schema:{name:'Table A + Table B',cols:['Table A (id)','Table B (id)'],
+     rows:[['1','1'],['1','2'],['2','3'],['2','4'],['3','NULL'],['4',''],['NULL','']]},
+   code:null,
+   answer:'35',
+   hint:'CROSS JOIN = cartesian product. Every row in A × every row in B. No ON condition.',
+   reveal:'CROSS JOIN = every row from A paired with every row from B.\n\nTable A has 7 rows.\nTable B has 5 rows.\n\n7 × 5 = 35 rows\n\nNo ON condition — NULLs are treated as regular values here.\nEvery combination is returned regardless of values.'},
+
+  {id:27,cat:'jn',diff:'med',type:'concept',
+   q:'You do LEFT JOIN and then GROUP BY with COUNT(*). A customer in Table A has no matching orders in Table B. What does COUNT(*) return for that customer?',
+   schema:{name:'customers (A) + orders (B)',cols:['customer_id','order_id','amount'],
+     rows:[['C1','O1','100'],['C1','O2','200'],['C2','(no orders)','NULL']]},
+   code:null,
+   answer:'COUNT(*) returns 1, not 0. Use COUNT(order_id) to get 0 for unmatched rows.',
+   hint:'COUNT(*) counts rows, not values. The unmatched customer still has 1 row in the result.',
+   reveal:'After LEFT JOIN, C2 has 1 row with NULL order columns.\n\nCOUNT(*)        → 1  (counts the row itself)\nCOUNT(order_id) → 0  (skips NULL values)\nSUM(amount)     → NULL (not 0!)\n\nCommon interview trap:\n"How many orders does C2 have?"\nWrong: COUNT(*) → 1\nRight: COUNT(order_id) → 0\n\nAlways use COUNT(specific_column) after LEFT JOIN to count actual matches.'},
+
 ];
 
 // ══════════════════════════════════════════════════════
