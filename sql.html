@@ -1259,12 +1259,13 @@ async function checkWithGroq(question, qtype, correct, userAnswer) {
 Always reply with valid JSON only — no extra text, no markdown.
 Format: {"correct": true or false, "feedback": "one sentence if wrong, empty string if correct"}
 Rules:
-- IGNORE spelling mistakes, typos, and grammar errors
+- IGNORE spelling mistakes, typos, and grammar errors completely
+- IGNORE informal phrasing ("we will get", "we receive", "it gives", etc.) — treat as equivalent to formal phrasing
 - For "write" type questions: accept any SQL that achieves the correct result — syntax variations, alias names, and formatting do not matter
-- For "concept" type questions: accept answers that convey the correct meaning even if worded differently
+- For "concept" type questions: BE GENEROUS. If the student captures the KEY concept (the main point), mark correct even if they skip secondary details or the full explanation. A short answer stating the right core idea is CORRECT.
 - For "output" type questions: be strict about the actual result values
-- Only mark wrong if the SQL logic or concept is fundamentally incorrect
-- feedback must explain the conceptual or logical mistake only`;
+- Only mark wrong if the core SQL logic or concept is fundamentally wrong or the student says the opposite of the correct answer
+- feedback must explain the conceptual or logical mistake only, not point out missing details`;
 
   const userPrompt = `Question type: ${qtype}
 Question: ${question}
