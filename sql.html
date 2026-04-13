@@ -1,0 +1,967 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SQLDrill — SQL Practice Tool</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0d0f14;--surface:#151820;--card:#1c2030;--border:#2a2f42;
+  --accent:#5b8def;--accent2:#3ecf8e;--accent3:#f5a623;--danger:#e05c6a;
+  --purple:#b66ef5;--text:#e8eaf0;--muted:#7a8099;--code-bg:#111420;
+  --sidebar:260px;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Syne',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;display:flex;flex-direction:column;}
+body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(91,141,239,.04) 1px,transparent 1px),linear-gradient(90deg,rgba(91,141,239,.04) 1px,transparent 1px);background-size:40px 40px;pointer-events:none;z-index:0;}
+
+/* HEADER */
+header{position:relative;z-index:20;display:flex;align-items:center;justify-content:space-between;padding:14px 24px;border-bottom:1px solid var(--border);background:rgba(13,15,20,.95);backdrop-filter:blur(8px);flex-shrink:0;}
+.logo{font-size:20px;font-weight:800;letter-spacing:-.5px;}
+.logo span{color:var(--accent3);}
+.hdr-right{display:flex;align-items:center;gap:20px;}
+.hdr-stats{display:flex;gap:18px;font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--muted);}
+.hdr-stats strong{color:var(--accent2);}
+.btn-index-toggle{font-family:'Syne',sans-serif;font-size:12px;font-weight:700;padding:6px 14px;border-radius:6px;border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer;transition:all .2s;}
+.btn-index-toggle:hover,.btn-index-toggle.active{border-color:var(--accent3);color:var(--accent3);background:rgba(245,166,35,.08);}
+.btn-settings{background:transparent;border:1px solid var(--border);border-radius:6px;padding:6px 10px;color:var(--muted);cursor:pointer;font-size:14px;transition:all .2s;line-height:1;}
+.btn-settings:hover{border-color:var(--accent);color:var(--accent);}
+.btn-settings.has-key{border-color:var(--accent2);color:var(--accent2);}
+.ai-badge{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:600;padding:2px 7px;border-radius:999px;background:rgba(182,110,245,.15);color:#b66ef5;display:none;}
+.ai-badge.show{display:inline-block;}
+.home-link{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted);text-decoration:none;padding:6px 10px;border:1px solid var(--border);border-radius:6px;transition:all .2s;}
+.home-link:hover{color:var(--accent);border-color:var(--accent);}
+
+/* BODY LAYOUT */
+.app-body{display:flex;flex:1;position:relative;z-index:1;overflow:hidden;}
+
+/* SIDEBAR */
+.sidebar{width:var(--sidebar);flex-shrink:0;border-right:1px solid var(--border);background:var(--surface);display:flex;flex-direction:column;overflow:hidden;transition:width .3s ease,opacity .3s ease;}
+.sidebar.hidden{width:0;opacity:0;pointer-events:none;}
+.sidebar-header{padding:14px 16px 10px;border-bottom:1px solid var(--border);flex-shrink:0;}
+.sidebar-title{font-size:13px;font-weight:700;color:var(--text);margin-bottom:8px;}
+.sidebar-search{width:100%;background:var(--code-bg);border:1px solid var(--border);border-radius:6px;padding:7px 10px;font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--text);outline:none;}
+.sidebar-search:focus{border-color:var(--accent3);}
+.sidebar-search::placeholder{color:var(--muted);}
+.sidebar-filter{display:flex;gap:4px;flex-wrap:wrap;margin-top:8px;}
+.sf-btn{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:600;padding:3px 8px;border-radius:999px;border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer;transition:all .15s;}
+.sf-btn:hover{color:var(--text);}
+.sf-btn.active{color:#fff;}
+.sf-btn[data-f="all"].active{background:var(--accent3);border-color:var(--accent3);color:#0d0f14;}
+.sf-btn[data-f="grp"].active{background:#5b8def;border-color:#5b8def;}
+.sf-btn[data-f="win"].active{background:#3ecf8e;border-color:#3ecf8e;color:#0d0f14;}
+.sf-btn[data-f="cte"].active{background:#b66ef5;border-color:#b66ef5;}
+.sf-btn[data-f="jn"].active{background:#f5a623;border-color:#f5a623;color:#0d0f14;}
+.sf-btn[data-f="nul"].active{background:#e05c6a;border-color:#e05c6a;}
+.sf-btn[data-f="con"].active{background:#5b8def;border-color:#5b8def;}
+.q-index-list{flex:1;overflow-y:auto;padding:8px 0;}
+.q-index-list::-webkit-scrollbar{width:4px;}
+.q-index-list::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px;}
+.q-index-item{display:flex;align-items:flex-start;gap:8px;padding:8px 14px;cursor:pointer;transition:background .15s;border-left:2px solid transparent;}
+.q-index-item:hover{background:rgba(255,255,255,.03);}
+.q-index-item.active-q{background:rgba(245,166,35,.08);border-left-color:var(--accent3);}
+.q-index-item.done-ok{border-left-color:var(--accent2);}
+.q-index-item.done-bad{border-left-color:var(--danger);}
+.qi-num{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--muted);min-width:22px;padding-top:2px;}
+.qi-body{flex:1;min-width:0;}
+.qi-text{font-size:12px;color:var(--text);line-height:1.4;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
+.qi-tags{display:flex;gap:4px;margin-top:3px;flex-wrap:wrap;}
+.qi-tag{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:600;padding:1px 6px;border-radius:999px;}
+.qi-tag.grp{background:rgba(91,141,239,.15);color:#5b8def;}
+.qi-tag.win{background:rgba(62,207,142,.15);color:#3ecf8e;}
+.qi-tag.cte{background:rgba(182,110,245,.15);color:#b66ef5;}
+.qi-tag.jn{background:rgba(245,166,35,.15);color:#f5a623;}
+.qi-tag.nul{background:rgba(224,92,106,.15);color:#e05c6a;}
+.qi-tag.con{background:rgba(91,141,239,.15);color:#5b8def;}
+.qi-tag.easy{background:rgba(62,207,142,.08);color:#3ecf8e;}
+.qi-tag.med{background:rgba(245,166,35,.08);color:#f5a623;}
+.qi-tag.hard{background:rgba(224,92,106,.08);color:#e05c6a;}
+.qi-tag.write{background:rgba(182,110,245,.08);color:#b66ef5;}
+.qi-tag.output{background:rgba(91,141,239,.08);color:#5b8def;}
+.qi-tag.concept{background:rgba(62,207,142,.08);color:#3ecf8e;}
+
+/* MAIN */
+.main{flex:1;overflow-y:auto;padding:24px 28px 60px;}
+.main::-webkit-scrollbar{width:6px;}
+.main::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px;}
+
+/* SCORES */
+.score-panel{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:22px;}
+.score-card{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:12px;text-align:center;}
+.score-num{font-family:'JetBrains Mono',monospace;font-size:22px;font-weight:700;display:block;}
+.score-lbl{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-top:2px;}
+
+/* CONTROLS */
+.controls-row{display:flex;gap:10px;margin-bottom:18px;flex-wrap:wrap;align-items:center;}
+.mode-bar{display:flex;gap:6px;}
+.mode-btn{font-family:'Syne',sans-serif;font-size:12px;font-weight:600;padding:7px 14px;border-radius:8px;border:1px solid var(--border);background:var(--surface);color:var(--muted);cursor:pointer;transition:all .2s;white-space:nowrap;}
+.mode-btn:hover{color:var(--text);border-color:var(--accent3);}
+.mode-btn.active{background:var(--card);color:var(--text);border-color:var(--accent3);}
+.btn-shuffle{font-family:'Syne',sans-serif;font-size:12px;font-weight:700;padding:7px 14px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer;transition:all .2s;margin-left:auto;}
+.btn-shuffle:hover{border-color:var(--accent3);color:var(--accent3);}
+
+/* PROGRESS */
+.progress-wrap{display:flex;align-items:center;gap:12px;margin-bottom:18px;}
+.progress-track{flex:1;height:3px;background:var(--border);border-radius:999px;overflow:hidden;}
+.progress-fill{height:100%;background:linear-gradient(90deg,var(--accent3),var(--accent2));border-radius:999px;transition:width .4s ease;}
+.progress-label{font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--muted);white-space:nowrap;}
+.streak-wrap{display:flex;gap:4px;}
+.streak-dot{width:7px;height:7px;border-radius:50%;background:var(--border);transition:all .3s;}
+.streak-dot.on{background:var(--accent2);box-shadow:0 0 5px var(--accent2);}
+
+/* QUESTION CARD */
+.q-card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:24px;position:relative;overflow:hidden;}
+.q-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,var(--accent3),var(--accent2));}
+.q-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;}
+.badges{display:flex;gap:6px;flex-wrap:wrap;}
+.badge{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:600;padding:2px 9px;border-radius:999px;letter-spacing:.5px;}
+.badge-grp{background:rgba(91,141,239,.15);color:#5b8def;}
+.badge-win{background:rgba(62,207,142,.15);color:#3ecf8e;}
+.badge-cte{background:rgba(182,110,245,.15);color:#b66ef5;}
+.badge-jn{background:rgba(245,166,35,.15);color:#f5a623;}
+.badge-nul{background:rgba(224,92,106,.15);color:#e05c6a;}
+.badge-con{background:rgba(91,141,239,.15);color:#5b8def;}
+.badge-easy{background:rgba(62,207,142,.1);color:#3ecf8e;}
+.badge-med{background:rgba(245,166,35,.1);color:#f5a623;}
+.badge-hard{background:rgba(224,92,106,.1);color:#e05c6a;}
+.badge-write{background:rgba(182,110,245,.1);color:#b66ef5;}
+.badge-output{background:rgba(91,141,239,.1);color:#5b8def;}
+.badge-concept{background:rgba(62,207,142,.1);color:#3ecf8e;}
+.q-num{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted);}
+.q-text{font-size:16px;font-weight:600;line-height:1.55;margin-bottom:14px;}
+
+/* DATA TABLE */
+.schema-wrap{margin-bottom:14px;}
+.schema-label{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:6px;}
+.data-table-wrap{overflow-x:auto;border-radius:7px;border:1px solid var(--border);}
+.data-table{width:100%;border-collapse:collapse;font-family:'JetBrains Mono',monospace;font-size:12px;}
+.data-table th{background:rgba(245,166,35,.08);color:var(--accent3);font-weight:700;padding:7px 12px;text-align:left;border-bottom:1px solid var(--border);white-space:nowrap;}
+.data-table td{padding:6px 12px;border-bottom:1px solid rgba(42,47,66,.5);color:var(--text);white-space:nowrap;}
+.data-table tr:last-child td{border-bottom:none;}
+.data-table tr:hover td{background:rgba(255,255,255,.02);}
+.data-table td.null-val{color:var(--muted);font-style:italic;}
+
+/* SQL CODE BLOCK */
+.q-code{background:var(--code-bg);border:1px solid var(--border);border-radius:7px;padding:13px 16px;font-family:'JetBrains Mono',monospace;font-size:13px;color:#c9d0e8;margin-bottom:14px;line-height:1.7;white-space:pre;overflow-x:auto;}
+.kw{color:#5b8def;}.fn{color:#3ecf8e;}.st{color:#f5a623;}.cm{color:#4a5270;font-style:italic;}.nm{color:#e05c6a;}
+
+/* ANSWER INPUT */
+.answer-input{width:100%;background:var(--code-bg);border:1px solid var(--border);border-radius:7px;padding:12px 15px;font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--text);outline:none;transition:border-color .2s;resize:vertical;min-height:80px;}
+.answer-input:focus{border-color:var(--accent3);}
+.answer-input.correct{border-color:var(--accent2);background:rgba(62,207,142,.05);}
+.answer-input.wrong{border-color:var(--danger);background:rgba(224,92,106,.05);}
+.input-hint{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--muted);margin-top:5px;}
+
+/* RESULT BANNER */
+.result-banner{display:none;padding:10px 14px;border-radius:7px;font-size:13px;font-weight:600;margin-top:10px;line-height:1.6;}
+.result-banner.show{display:block;}
+.result-banner.ok{background:rgba(62,207,142,.1);border:1px solid rgba(62,207,142,.3);color:#3ecf8e;}
+.result-banner.bad{background:rgba(224,92,106,.1);border:1px solid rgba(224,92,106,.3);color:#e05c6a;}
+.result-banner.info{background:rgba(91,141,239,.1);border:1px solid rgba(91,141,239,.3);color:#8ab4f8;}
+
+.hint-box{display:none;background:rgba(245,166,35,.07);border:1px solid rgba(245,166,35,.25);border-radius:7px;padding:10px 14px;font-size:12px;color:#f5a623;margin-top:10px;font-family:'JetBrains Mono',monospace;}
+.hint-box.show{display:block;}
+.answer-reveal{display:none;background:var(--code-bg);border:1px solid var(--border);border-radius:7px;padding:13px 15px;font-family:'JetBrains Mono',monospace;font-size:13px;color:#c9d0e8;margin-top:10px;line-height:1.7;white-space:pre-wrap;}
+.answer-reveal.show{display:block;}
+
+/* FLASHCARD */
+.flashcard-wrap{perspective:1000px;margin-top:12px;cursor:pointer;}
+.flashcard{width:100%;min-height:140px;position:relative;transform-style:preserve-3d;transition:transform .5s cubic-bezier(.4,0,.2,1);}
+.flashcard.flipped{transform:rotateY(180deg);}
+.fc-front,.fc-back{position:absolute;inset:0;backface-visibility:hidden;border-radius:8px;padding:20px;display:flex;align-items:center;justify-content:center;text-align:center;min-height:140px;}
+.fc-front{background:rgba(245,166,35,.08);border:1px solid rgba(245,166,35,.2);font-size:15px;font-weight:700;}
+.fc-back{background:rgba(62,207,142,.08);border:1px solid rgba(62,207,142,.2);transform:rotateY(180deg);font-family:'JetBrains Mono',monospace;font-size:12px;color:#c9d0e8;line-height:1.7;white-space:pre-wrap;text-align:left;}
+.fc-hint{text-align:center;font-size:11px;color:var(--muted);margin-top:7px;font-family:'JetBrains Mono',monospace;}
+
+/* BUTTONS */
+.btn-row{display:flex;gap:8px;margin-top:16px;flex-wrap:wrap;}
+.btn{font-family:'Syne',sans-serif;font-size:12px;font-weight:700;padding:9px 18px;border-radius:7px;border:none;cursor:pointer;transition:all .18s;letter-spacing:.3px;}
+.btn:active{transform:scale(.97);}
+.btn-primary{background:var(--accent3);color:#0d0f14;}
+.btn-primary:hover{background:#e09500;}
+.btn-success{background:var(--accent2);color:#0d0f14;}
+.btn-success:hover{background:#32b87a;}
+.btn-ghost{background:transparent;border:1px solid var(--border);color:var(--muted);}
+.btn-ghost:hover{border-color:var(--accent3);color:var(--accent3);}
+.btn-warn{background:var(--accent3);color:#0d0f14;}
+.btn-next{background:var(--surface);border:1px solid var(--border);color:var(--text);margin-left:auto;}
+.btn-next:hover{border-color:var(--accent2);color:var(--accent2);}
+
+/* SETTINGS MODAL */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:200;align-items:center;justify-content:center;backdrop-filter:blur(4px);}
+.modal-overlay.show{display:flex;}
+.modal{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:28px;width:min(480px,92vw);position:relative;}
+.modal h2{font-size:16px;font-weight:800;margin-bottom:6px;}
+.modal-desc{font-size:12px;color:var(--muted);margin-bottom:20px;line-height:1.6;}
+.modal-desc a{color:var(--accent);text-decoration:none;}
+.modal label{display:block;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.7px;margin-bottom:6px;}
+.modal input{width:100%;background:var(--code-bg);border:1px solid var(--border);border-radius:7px;padding:10px 13px;font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--text);outline:none;margin-bottom:16px;}
+.modal input:focus{border-color:var(--accent);}
+.modal-actions{display:flex;gap:8px;justify-content:flex-end;}
+.modal-note{font-size:11px;color:var(--muted);margin-top:14px;padding-top:14px;border-top:1px solid var(--border);font-family:'JetBrains Mono',monospace;line-height:1.6;}
+.modal-note strong{color:var(--accent2);}
+
+.no-results{padding:24px;text-align:center;font-size:12px;color:var(--muted);font-family:'JetBrains Mono',monospace;}
+
+@media(max-width:700px){
+  .sidebar{position:fixed;top:0;left:0;bottom:0;z-index:100;width:280px !important;opacity:1 !important;}
+  .sidebar.hidden{width:0 !important;opacity:0 !important;}
+  .score-panel{grid-template-columns:repeat(2,1fr);}
+  .main{padding:16px 14px 40px;}
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">SQL<span>Drill</span></div>
+  <div class="hdr-right">
+    <div class="hdr-stats">
+      <span>streak <strong id="hdr-streak">0</strong></span>
+      <span>correct <strong id="hdr-correct">0</strong></span>
+      <span>total <strong id="hdr-total">0</strong></span>
+    </div>
+    <a href="index.html" class="home-link">⌂ PyDrill</a>
+    <span class="ai-badge" id="ai-badge">AI</span>
+    <button class="btn-settings" id="btn-settings" onclick="openSettings()" title="Groq AI Settings">⚙</button>
+    <button class="btn-index-toggle active" id="sidebar-toggle" onclick="toggleSidebar()">☰ Index</button>
+  </div>
+</header>
+
+<!-- SETTINGS MODAL -->
+<div class="modal-overlay" id="settings-modal" onclick="if(event.target===this)closeSettings()">
+  <div class="modal">
+    <h2>Groq AI Settings</h2>
+    <p class="modal-desc">Add your free Groq API key to enable AI-powered answer checking. Your key is stored only in your browser — it never goes to GitHub or any server.<br><br>Get a free key at <a href="https://console.groq.com" target="_blank">console.groq.com</a></p>
+    <label>Groq API Key</label>
+    <input type="password" id="groq-key-input" placeholder="gsk_..." spellcheck="false">
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="clearGroqKey()">Remove Key</button>
+      <button class="btn btn-primary" onclick="saveGroqKey()">Save Key</button>
+    </div>
+    <div class="modal-note">
+      <strong>What AI does:</strong> For write-a-query and conceptual questions, AI evaluates if your logic is correct — not exact syntax. Falls back to text matching if no key is set.
+    </div>
+  </div>
+</div>
+
+<div class="app-body">
+
+  <!-- SIDEBAR -->
+  <div class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+      <div class="sidebar-title">All Questions</div>
+      <input class="sidebar-search" id="sb-search" placeholder="Search questions..." oninput="filterIndex()">
+      <div class="sidebar-filter">
+        <button class="sf-btn active" data-f="all" onclick="filterCat('all',this)">All</button>
+        <button class="sf-btn" data-f="grp"  onclick="filterCat('grp',this)">GROUP</button>
+        <button class="sf-btn" data-f="win"  onclick="filterCat('win',this)">WINDOW</button>
+        <button class="sf-btn" data-f="cte"  onclick="filterCat('cte',this)">CTE</button>
+        <button class="sf-btn" data-f="jn"   onclick="filterCat('jn',this)">JOIN</button>
+        <button class="sf-btn" data-f="nul"  onclick="filterCat('nul',this)">NULL</button>
+        <button class="sf-btn" data-f="con"  onclick="filterCat('con',this)">CONCEPT</button>
+      </div>
+    </div>
+    <div class="q-index-list" id="q-index-list"></div>
+  </div>
+
+  <!-- MAIN -->
+  <div class="main" id="main-area">
+
+    <div class="score-panel">
+      <div class="score-card"><span class="score-num" id="sc-correct" style="color:#3ecf8e">0</span><div class="score-lbl">Correct</div></div>
+      <div class="score-card"><span class="score-num" id="sc-wrong"   style="color:#e05c6a">0</span><div class="score-lbl">Wrong</div></div>
+      <div class="score-card"><span class="score-num" id="sc-streak"  style="color:#f5a623">0</span><div class="score-lbl">Streak</div></div>
+      <div class="score-card"><span class="score-num" id="sc-pct"     style="color:#5b8def">0%</span><div class="score-lbl">Accuracy</div></div>
+    </div>
+
+    <div class="controls-row">
+      <div class="mode-bar">
+        <button class="mode-btn active" onclick="setMode('type',this)">⌨️ Type</button>
+        <button class="mode-btn"        onclick="setMode('hint',this)">💡 Hint</button>
+        <button class="mode-btn"        onclick="setMode('flash',this)">🃏 Flash</button>
+      </div>
+      <button class="btn-shuffle" onclick="shuffle()">⇄ Shuffle</button>
+      <button class="btn-shuffle" onclick="resetProgress()" style="margin-left:0;color:#e05c6a;border-color:#e05c6a22;">↺ Reset</button>
+    </div>
+
+    <div class="progress-wrap">
+      <div class="progress-track"><div class="progress-fill" id="prog-fill" style="width:0%"></div></div>
+      <div class="progress-label" id="prog-label">- / -</div>
+      <div class="streak-wrap" id="streak-dots"></div>
+    </div>
+
+    <div class="q-card">
+      <div class="q-top">
+        <div class="badges">
+          <span class="badge" id="cat-badge"></span>
+          <span class="badge" id="diff-badge"></span>
+          <span class="badge" id="type-badge"></span>
+        </div>
+        <span class="q-num" id="q-num">#1</span>
+      </div>
+      <div class="q-text" id="q-text">Click any question in the index →</div>
+
+      <!-- Schema / data table -->
+      <div class="schema-wrap" id="schema-wrap" style="display:none">
+        <div class="schema-label" id="schema-label">Table</div>
+        <div class="data-table-wrap"><table class="data-table" id="data-table"></table></div>
+      </div>
+
+      <!-- SQL code block (for fix/output questions) -->
+      <div class="q-code" id="q-code" style="display:none"></div>
+
+      <div id="mode-type">
+        <textarea class="answer-input" id="ans-input" rows="3"
+          placeholder="Type your answer here... (Shift+Enter for new line, Enter to check)"
+          onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();checkAnswer();}"></textarea>
+        <div class="input-hint">Enter to check &nbsp;·&nbsp; Shift+Enter for new line</div>
+        <div class="result-banner" id="result-banner"></div>
+      </div>
+
+      <div id="mode-hint" style="display:none">
+        <div class="hint-box" id="hint-box"></div>
+        <div class="answer-reveal" id="ans-reveal"></div>
+      </div>
+
+      <div id="mode-flash" style="display:none">
+        <div class="flashcard-wrap" onclick="flipCard()">
+          <div class="flashcard" id="flashcard">
+            <div class="fc-front" id="fc-front"></div>
+            <div class="fc-back"  id="fc-back"></div>
+          </div>
+        </div>
+        <div class="fc-hint">Click card to flip</div>
+      </div>
+
+      <div class="btn-row" id="btn-row"></div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+// ══════════════════════════════════════════════════════
+//  QUESTION BANK
+// ══════════════════════════════════════════════════════
+const Q = [
+
+  // ── GROUP BY + HAVING ──
+  {id:1,cat:'grp',diff:'easy',type:'concept',
+   q:'What is the difference between WHERE and HAVING?',
+   schema:null, code:null,
+   answer:'WHERE filters rows before grouping; HAVING filters groups after GROUP BY',
+   hint:'Think about which one runs before and which runs after GROUP BY',
+   reveal:'WHERE  → filters individual rows BEFORE GROUP BY\nHAVING → filters groups AFTER GROUP BY\n\nExample:\nSELECT dept, COUNT(*) FROM emp\nWHERE salary > 50000       -- rows first\nGROUP BY dept\nHAVING COUNT(*) > 5;       -- then groups'},
+
+  {id:2,cat:'grp',diff:'easy',type:'write',
+   q:'Write a query to find transaction types that appear more than once.',
+   schema:{name:'transactions',cols:['transaction_id','transaction_type','amount'],
+     rows:[['101','Deposit','1000'],['102','Withdrawal','500'],['103','Deposit','2000'],['104','Deposit','1000']]},
+   code:null,
+   answer:'SELECT transaction_type, COUNT(*) FROM transactions GROUP BY transaction_type HAVING COUNT(*) > 1',
+   hint:'GROUP BY transaction_type, then filter groups with HAVING COUNT(*) > 1',
+   reveal:'SELECT transaction_type, COUNT(*)\nFROM transactions\nGROUP BY transaction_type\nHAVING COUNT(*) > 1;\n\nResult: Deposit | 3'},
+
+  {id:3,cat:'grp',diff:'easy',type:'write',
+   q:'Write a query: number of transactions per transaction type and average amount.',
+   schema:{name:'transactions',cols:['transaction_id','transaction_type','amount'],
+     rows:[['101','Deposit','1000'],['102','Withdrawal','500'],['103','Deposit','2000'],['104','Deposit','1000']]},
+   code:null,
+   answer:'SELECT transaction_type, COUNT(*), AVG(amount) FROM transactions GROUP BY transaction_type',
+   hint:'GROUP BY transaction_type, then use COUNT(*) and AVG(amount)',
+   reveal:'SELECT transaction_type, COUNT(*), AVG(amount)\nFROM transactions\nGROUP BY transaction_type;\n\nDeposit    | 3 | 1333.33\nWithdrawal | 1 | 500.00'},
+
+  // ── WINDOW FUNCTIONS ──
+  {id:4,cat:'win',diff:'med',type:'write',
+   q:'Write a query to get the second highest transaction amount (single value only) using window functions.',
+   schema:{name:'transactions',cols:['transaction_id','transaction_date','amount'],
+     rows:[['101','2025-10-01','1000'],['102','2025-10-02','500'],['103','2025-10-03','2000'],['104','2025-10-05','1000']]},
+   code:null,
+   answer:'WITH temp AS (SELECT amount, DENSE_RANK() OVER (ORDER BY amount DESC) AS rn FROM transactions) SELECT amount FROM temp WHERE rn = 2',
+   hint:'Use DENSE_RANK() ordered by amount DESC, then filter WHERE rn = 2',
+   reveal:'WITH temp AS (\n  SELECT amount,\n         DENSE_RANK() OVER (ORDER BY amount DESC) AS rn\n  FROM transactions\n)\nSELECT amount FROM temp WHERE rn = 2;\n\nResult: 1000\n\nNote: DENSE_RANK gives same rank to ties, so 1000 appears twice at rank 2.'},
+
+  {id:5,cat:'win',diff:'med',type:'write',
+   q:'Write a query to get top 3 orders per customer by order amount using window functions.',
+   schema:{name:'orders',cols:['customer_id','order_date','order_amount'],
+     rows:[['1','2024-01-01','500'],['1','2024-01-05','300'],['1','2024-01-10','800'],['1','2024-01-15','200'],['2','2024-01-02','600'],['2','2024-01-08','400']]},
+   code:null,
+   answer:'WITH ranked AS (SELECT customer_id, order_amount, RANK() OVER (PARTITION BY customer_id ORDER BY order_amount DESC) AS rank_ FROM orders) SELECT customer_id, order_amount FROM ranked WHERE rank_ <= 3',
+   hint:'PARTITION BY customer_id ORDER BY order_amount DESC, then filter rank_ <= 3',
+   reveal:'WITH ranked AS (\n  SELECT customer_id, order_amount,\n         RANK() OVER (PARTITION BY customer_id\n                      ORDER BY order_amount DESC) AS rank_\n  FROM orders\n)\nSELECT customer_id, order_amount\nFROM ranked\nWHERE rank_ <= 3;'},
+
+  {id:6,cat:'win',diff:'hard',type:'write',
+   q:'Write a query to detect new sessions: a new session starts when the gap between events is more than 30 minutes. Assign a session_id to each event.',
+   schema:{name:'events',cols:['user_id','ts'],
+     rows:[['U1','2024-01-01 09:00'],['U1','2024-01-01 09:20'],['U1','2024-01-01 10:05'],['U2','2024-01-01 11:00'],['U2','2024-01-01 11:25']]},
+   code:null,
+   answer:"WITH tagged AS (SELECT user_id, ts, CASE WHEN ts - LAG(ts) OVER (PARTITION BY user_id ORDER BY ts) > INTERVAL '30 minutes' THEN 1 ELSE 0 END AS new_sess FROM events) SELECT user_id, ts, SUM(new_sess) OVER (PARTITION BY user_id ORDER BY ts) AS session_id FROM tagged",
+   hint:'Use LAG() to get previous timestamp, compare gap > 30 min, then SUM() the new_sess flag as running total',
+   reveal:"WITH tagged AS (\n  SELECT user_id, ts,\n         CASE WHEN ts - LAG(ts) OVER (PARTITION BY user_id ORDER BY ts)\n                   > INTERVAL '30 minutes'\n              THEN 1 ELSE 0 END AS new_sess\n  FROM events\n)\nSELECT user_id, ts,\n       SUM(new_sess) OVER (PARTITION BY user_id ORDER BY ts) AS session_id\nFROM tagged;\n\nLogic: LAG gets previous row's ts. If gap > 30 min → new session flag = 1. Cumulative SUM creates incrementing session IDs."},
+
+  {id:7,cat:'win',diff:'med',type:'write',
+   q:'Write a query to get the latest record per employee (de-duplication).',
+   schema:{name:'employee_logs',cols:['employee_id','action','timestamp'],
+     rows:[['E1','login','2024-01-01 09:00'],['E1','login','2024-01-01 14:00'],['E2','login','2024-01-01 10:00'],['E2','login','2024-01-01 16:00']]},
+   code:null,
+   answer:'SELECT employee_id, MAX(timestamp) AS latest_timestamp FROM employee_logs GROUP BY employee_id',
+   hint:'Simple MAX(timestamp) with GROUP BY is the cleanest approach for latest record per key',
+   reveal:'SELECT employee_id, MAX(timestamp) AS latest_timestamp\nFROM employee_logs\nGROUP BY employee_id;\n\nAlternative with ROW_NUMBER:\nWITH rn AS (\n  SELECT *, ROW_NUMBER() OVER\n    (PARTITION BY employee_id ORDER BY timestamp DESC) AS rn\n  FROM employee_logs\n)\nSELECT * FROM rn WHERE rn = 1;'},
+
+  // ── CTE ──
+  {id:8,cat:'cte',diff:'med',type:'concept',
+   q:'What are the trade-offs between CTE, subquery, and temp table?',
+   schema:null, code:null,
+   answer:'CTE is readable and reusable in one query but not persisted; subquery is inline but hard to read when nested; temp table persists in session and can be indexed for performance',
+   hint:'Think about: readability, reusability, persistence, and performance (indexing)',
+   reveal:'CTE (WITH clause):\n  + Readable, named, can reference multiple times in same query\n  - Not persisted, re-evaluated each time in some DBs\n\nSubquery:\n  + Inline, no setup needed\n  - Hard to read when deeply nested, cannot reuse\n\nTemp Table:\n  + Persisted in session, can add indexes\n  + Good for large intermediate results\n  - Requires CREATE/DROP, more overhead\n\nRule of thumb:\n  Simple → subquery\n  Complex multi-step → CTE\n  Large data, reused across queries → temp table'},
+
+  {id:9,cat:'cte',diff:'hard',type:'write',
+   q:'Write a query using chained CTEs: first normalize country (US/USA → USA, NULL → Unknown), then calculate total sales per country.',
+   schema:{name:'sales_data',cols:['id','date','country','product','sales'],
+     rows:[['1','2025-01-01','USA','A','120'],['2','2025-01-01','US','B','NULL'],['3','2025-01-02','UK','A','150'],['4','2025-01-02','USA','A','150'],['5','2025-01-03','IN','C','60'],['6','2025-01-03','IN','C','60'],['7','2025-01-04','NULL','B','200'],['8','2025-01-05','UK','NULL','180']]},
+   code:null,
+   answer:"WITH normalized AS (SELECT *, COALESCE(CASE WHEN country IN ('US','USA') THEN 'USA' ELSE country END, 'Unknown') AS country_new, COALESCE(sales, 0) AS sales_new FROM sales_data) SELECT country_new, SUM(sales_new) AS total_sales FROM normalized GROUP BY country_new",
+   hint:'CTE 1: CASE WHEN to merge US/USA, COALESCE for NULL country. CTE 2: SUM(sales) GROUP BY country_new',
+   reveal:"WITH normalized AS (\n  SELECT *,\n    COALESCE(CASE WHEN country IN ('US','USA') THEN 'USA'\n             ELSE country END, 'Unknown') AS country_new,\n    COALESCE(sales, 0) AS sales_new\n  FROM sales_data\n)\nSELECT country_new, SUM(sales_new) AS total_sales\nFROM normalized\nGROUP BY country_new;\n\nResult:\nUSA     → 270  (120 + 0 + 150)\nUK      → 330  (150 + 180)\nIN      → 120  (60 + 60)\nUnknown → 200"},
+
+  // ── JOINs ──
+  {id:10,cat:'jn',diff:'med',type:'concept',
+   q:'You do a LEFT JOIN between orders and customers, then GROUP BY customer_id and SUM(amount). What happens to customers with no matching orders?',
+   schema:{name:'customers + orders',cols:['customer_id','order_id','amount'],
+     rows:[['C1','O1','100'],['C1','O2','200'],['C2','(no orders)','NULL'],['C3','O3','150']]},
+   code:null,
+   answer:'They still appear in the result with SUM(amount) = NULL, not 0. Use COALESCE(SUM(amount), 0) to get 0 instead.',
+   hint:'LEFT JOIN keeps all rows from the left table. What does SUM of NULLs return?',
+   reveal:'LEFT JOIN keeps ALL rows from left table (customers).\nFor customers with no orders: amount column is NULL.\n\nSUM(NULL) → NULL  (not 0!)\nCOUNT(*)  → 1    (counts the row)\nCOUNT(amount) → 0  (skips NULLs)\n\nFix:\nSELECT c.customer_id, COALESCE(SUM(o.amount), 0) AS total\nFROM customers c\nLEFT JOIN orders o ON c.customer_id = o.customer_id\nGROUP BY c.customer_id;'},
+
+  {id:11,cat:'jn',diff:'med',type:'concept',
+   q:'What is the difference in row count between INNER JOIN and LEFT JOIN when right table has non-matching rows?',
+   schema:{name:'A + B',cols:['A.id','B.id','matched'],
+     rows:[['1','1','YES'],['2','(none)','LEFT only'],['3','3','YES']]},
+   code:null,
+   answer:'INNER JOIN returns only matched rows. LEFT JOIN returns all rows from left table — unmatched right side columns are NULL.',
+   hint:'INNER = intersection only. LEFT = all of left + matches from right.',
+   reveal:'Table A: ids 1, 2, 3\nTable B: ids 1, 3\n\nINNER JOIN → 2 rows (ids 1, 3 only)\nLEFT JOIN  → 3 rows (ids 1, 2, 3 — row 2 has NULLs for B columns)\nRIGHT JOIN → 2 rows (ids 1, 3 — same as inner here since B is subset)\n\nKey rule: LEFT JOIN never loses rows from the LEFT table.'},
+
+  // ── NULL HANDLING ──
+  {id:12,cat:'nul',diff:'easy',type:'concept',
+   q:'What is the difference between COUNT(*), COUNT(column), and COUNT(DISTINCT column)?',
+   schema:null, code:null,
+   answer:'COUNT(*) counts all rows including NULLs; COUNT(column) skips NULLs; COUNT(DISTINCT column) counts unique non-NULL values',
+   hint:'Think about what each one does with NULL values and duplicates',
+   reveal:'Given: [1, 2, 2, NULL, NULL]\n\nCOUNT(*)              → 5  (all rows)\nCOUNT(col)            → 3  (skips NULLs)\nCOUNT(DISTINCT col)   → 2  (unique non-NULLs: 1, 2)\n\nCommon trap: COUNT(*) on a LEFT JOIN does not mean "matched rows" — use COUNT(right_table.id) instead.'},
+
+  {id:13,cat:'nul',diff:'easy',type:'concept',
+   q:'What does SUM(NULL) return? What about SUM(column) when all values are NULL?',
+   schema:null, code:null,
+   answer:'SUM(NULL) returns NULL. Use COALESCE(SUM(column), 0) to return 0 instead.',
+   hint:'NULL is not zero in SQL — any arithmetic with NULL returns NULL',
+   reveal:'SUM(NULL)  → NULL\nSUM(col) where all rows are NULL → NULL\n\nFix:\nCOALESCE(SUM(col), 0) → returns 0 when all NULLs\n\nAlso useful:\nSUM(COALESCE(col, 0)) → treats each NULL as 0 before summing\n\nBoth give same result but COALESCE(SUM(...), 0) is more efficient.'},
+
+  {id:14,cat:'nul',diff:'med',type:'write',
+   q:'Write a query to pivot sales by country into columns (USA, UK, IN) handling NULL country and NULL sales.',
+   schema:{name:'sales_data',cols:['id','country','sales'],
+     rows:[['1','USA','120'],['2','US','NULL'],['3','UK','150'],['4','USA','150'],['5','IN','60'],['6','IN','60'],['7','NULL','200'],['8','UK','NULL']]},
+   code:null,
+   answer:"SELECT SUM(CASE WHEN country IN ('US','USA') THEN COALESCE(sales,0) ELSE 0 END) AS USA, SUM(CASE WHEN country = 'UK' THEN COALESCE(sales,0) ELSE 0 END) AS UK, SUM(CASE WHEN country = 'IN' THEN COALESCE(sales,0) ELSE 0 END) AS IN_ FROM sales_data",
+   hint:'Use SUM(CASE WHEN country = X THEN sales ELSE 0 END) for each column. Handle US/USA as same.',
+   reveal:"SELECT\n  SUM(CASE WHEN country IN ('US','USA') THEN COALESCE(sales,0) ELSE 0 END) AS USA,\n  SUM(CASE WHEN country = 'UK'  THEN COALESCE(sales,0) ELSE 0 END) AS UK,\n  SUM(CASE WHEN country = 'IN'  THEN COALESCE(sales,0) ELSE 0 END) AS IN_\nFROM sales_data;\n\nResult: USA=270, UK=330, IN=120\nNULL country row (200) is excluded from all columns."},
+
+  // ── CONCEPTUAL ──
+  {id:15,cat:'con',diff:'med',type:'concept',
+   q:'You GROUP BY and LEFT JOIN — if a left table row has no match and you do SUM(amount), do you get NULL or 0?',
+   schema:null, code:null,
+   answer:'You get NULL. SUM of NULL values returns NULL. Use COALESCE(SUM(amount), 0) to convert to 0.',
+   hint:'SUM ignores NULLs but if ALL values are NULL the result is NULL, not 0.',
+   reveal:'LEFT JOIN keeps unmatched rows with NULL in right-table columns.\nSUM(NULL) = NULL, not 0.\n\nExample:\nCustomer C2 has no orders → amount is NULL\nSUM(amount) for C2 → NULL\n\nFix: COALESCE(SUM(amount), 0)\n\nThis is a very common interview trick question!'},
+
+  {id:16,cat:'con',diff:'med',type:'concept',
+   q:'What is the difference between RANK(), DENSE_RANK(), and ROW_NUMBER()?',
+   schema:null, code:null,
+   answer:'ROW_NUMBER gives unique sequential numbers. RANK skips numbers after ties. DENSE_RANK does not skip numbers after ties.',
+   hint:'Think about what happens when two rows have the same value — do ranks get skipped?',
+   reveal:'Given scores: 100, 90, 90, 80\n\nROW_NUMBER → 1, 2, 3, 4   (always unique, arbitrary for ties)\nRANK       → 1, 2, 2, 4   (skips 3 after the tie)\nDENSE_RANK → 1, 2, 2, 3   (no skip, next rank is 3)\n\nUse case:\n  Top-N per group → ROW_NUMBER (strict)\n  2nd highest value → DENSE_RANK (handles ties correctly)'},
+
+  {id:17,cat:'con',diff:'hard',type:'concept',
+   q:'What is a correlated subquery and how is it different from a regular subquery?',
+   schema:null, code:null,
+   answer:'A correlated subquery references a column from the outer query and runs once per row. A regular subquery runs once and is independent.',
+   hint:'Does the subquery depend on the outer query\'s current row?',
+   reveal:'Regular subquery (runs once):\nSELECT * FROM emp\nWHERE salary > (SELECT AVG(salary) FROM emp);\n\nCorrelated subquery (runs per row):\nSELECT * FROM emp e1\nWHERE salary > (\n  SELECT AVG(salary) FROM emp e2\n  WHERE e2.dept = e1.dept  -- references outer row\n);\n\nCorrelated subqueries are slower — prefer JOINs or window functions when possible.'},
+
+  {id:18,cat:'con',diff:'med',type:'write',
+   q:'Write a query to find conversion rate per campaign channel. Response = "yes" means converted.',
+   schema:{name:'customers',cols:['customer_id','campaign','response'],
+     rows:[['1','email','yes'],['2','call','no'],['3','sms','yes'],['4','email','no'],['5','call','yes']]},
+   code:null,
+   answer:"SELECT campaign, ROUND(100.0 * SUM(CASE WHEN response = 'yes' THEN 1 ELSE 0 END) / COUNT(*), 2) AS conversion_rate FROM customers GROUP BY campaign",
+   hint:'SUM(CASE WHEN response = yes THEN 1 ELSE 0 END) / COUNT(*) * 100, GROUP BY campaign',
+   reveal:"SELECT campaign,\n  ROUND(100.0 * SUM(CASE WHEN response = 'yes' THEN 1 ELSE 0 END)\n        / COUNT(*), 2) AS conversion_rate\nFROM customers\nGROUP BY campaign;\n\nResult:\nemail → 50.00%\ncall  → 50.00%\nsms   → 100.00%"},
+
+  {id:19,cat:'con',diff:'easy',type:'write',
+   q:'Write a query to find average balance of customers who accepted the offer (response = "yes").',
+   schema:{name:'customers',cols:['customer_id','balance','response'],
+     rows:[['1','50000','yes'],['2','120000','no'],['3','70000','yes'],['4','30000','no'],['5','90000','yes']]},
+   code:null,
+   answer:"SELECT AVG(balance) AS avg_balance FROM customers WHERE response = 'yes'",
+   hint:'Simple AVG with WHERE filter — no GROUP BY needed',
+   reveal:"SELECT AVG(balance) AS avg_balance\nFROM customers\nWHERE response = 'yes';\n\nResult: AVG(50000, 70000, 90000) = 70000"},
+
+  {id:20,cat:'con',diff:'med',type:'write',
+   q:'Which job segment has the highest conversion rate (response = "yes")?',
+   schema:{name:'customers',cols:['customer_id','job','response'],
+     rows:[['1','salaried','yes'],['2','business','no'],['3','salaried','yes'],['4','retired','no'],['5','business','yes']]},
+   code:null,
+   answer:"SELECT job FROM (SELECT job, SUM(CASE WHEN response='yes' THEN 1 ELSE 0 END)::numeric / COUNT(*) AS conv_rate FROM customers GROUP BY job ORDER BY conv_rate DESC LIMIT 1) t",
+   hint:'Calculate conversion rate per job using CASE WHEN, ORDER BY rate DESC, LIMIT 1',
+   reveal:"SELECT job,\n  SUM(CASE WHEN response='yes' THEN 1 ELSE 0 END)::numeric\n  / COUNT(*) AS conv_rate\nFROM customers\nGROUP BY job\nORDER BY conv_rate DESC\nLIMIT 1;\n\nResult: salaried (2/2 = 100%)"},
+
+];
+
+// ══════════════════════════════════════════════════════
+//  STATE
+// ══════════════════════════════════════════════════════
+let state = {
+  mode: 'type',
+  curId: 1,
+  correct: 0, wrong: 0, streak: 0, total: 0,
+  answered: false,
+  checking: false,
+  results: {},
+  recordedWrong: {},
+  sbCat: 'all',
+  sbSearch: '',
+  pool: [],
+  poolIdx: 0,
+};
+
+// ══════════════════════════════════════════════════════
+//  INIT
+// ══════════════════════════════════════════════════════
+function init() {
+  loadProgress();
+  buildPool();
+  renderIndex();
+  jumpTo(Q[0].id);
+  renderStreak();
+  updateScores();
+  updateAiBadge();
+}
+
+function buildPool(shuffled) {
+  let filtered = Q.filter(q => state.sbCat === 'all' || q.cat === state.sbCat);
+  if (shuffled) {
+    for (let i = filtered.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [filtered[i], filtered[j]] = [filtered[j], filtered[i]];
+    }
+  }
+  state.pool = filtered.map(q => q.id);
+  state.poolIdx = 0;
+}
+
+// ══════════════════════════════════════════════════════
+//  SIDEBAR INDEX
+// ══════════════════════════════════════════════════════
+function renderIndex() {
+  const search = state.sbSearch.toLowerCase();
+  const list = document.getElementById('q-index-list');
+  let filtered = Q.filter(q => {
+    const catOk = state.sbCat === 'all' || q.cat === state.sbCat;
+    const searchOk = !search || q.q.toLowerCase().includes(search);
+    return catOk && searchOk;
+  });
+  if (!filtered.length) { list.innerHTML = '<div class="no-results">No questions found</div>'; return; }
+  list.innerHTML = filtered.map(q => {
+    const res = state.results[q.id];
+    const cls = ['q-index-item', q.id === state.curId ? 'active-q' : '', res === 'ok' ? 'done-ok' : res === 'bad' ? 'done-bad' : ''].join(' ');
+    const status = res === 'ok' ? '✓' : res === 'bad' ? '✗' : '';
+    return `<div class="${cls}" onclick="jumpTo(${q.id})">
+      <span class="qi-num">#${q.id}</span>
+      <div class="qi-body">
+        <div class="qi-text">${q.q}</div>
+        <div class="qi-tags">
+          <span class="qi-tag ${q.cat}">${q.cat.toUpperCase()}</span>
+          <span class="qi-tag ${q.diff}">${q.diff}</span>
+          <span class="qi-tag ${q.type}">${q.type}</span>
+          ${status ? `<span style="font-size:11px">${status}</span>` : ''}
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function filterCat(cat, el) {
+  state.sbCat = cat;
+  document.querySelectorAll('.sf-btn').forEach(b => b.classList.remove('active'));
+  el.classList.add('active');
+  buildPool();
+  renderIndex();
+  if (state.pool.length) jumpTo(state.pool[0]);
+}
+
+function filterIndex() {
+  state.sbSearch = document.getElementById('sb-search').value;
+  renderIndex();
+}
+
+// ══════════════════════════════════════════════════════
+//  RENDER QUESTION
+// ══════════════════════════════════════════════════════
+function jumpTo(id) {
+  state.curId = id;
+  state.answered = false;
+  state.checking = false;
+  delete state.recordedWrong[id];
+  state.poolIdx = state.pool.indexOf(id);
+  if (state.poolIdx < 0) { state.pool.push(id); state.poolIdx = state.pool.length - 1; }
+  renderQuestion();
+  renderIndex();
+  updateProgress();
+}
+
+function renderQuestion() {
+  const q = Q.find(x => x.id === state.curId);
+  if (!q) return;
+
+  // Badges
+  const catNames = {grp:'GROUP BY',win:'WINDOW',cte:'CTE',jn:'JOIN',nul:'NULL',con:'CONCEPT'};
+  document.getElementById('cat-badge').textContent  = catNames[q.cat] || q.cat;
+  document.getElementById('cat-badge').className    = `badge badge-${q.cat}`;
+  document.getElementById('diff-badge').textContent = q.diff;
+  document.getElementById('diff-badge').className   = `badge badge-${q.diff}`;
+  document.getElementById('type-badge').textContent = q.type;
+  document.getElementById('type-badge').className   = `badge badge-${q.type}`;
+  document.getElementById('q-num').textContent = `#${q.id}`;
+  document.getElementById('q-text').textContent = q.q;
+
+  // Schema table
+  const schemaWrap = document.getElementById('schema-wrap');
+  if (q.schema) {
+    schemaWrap.style.display = '';
+    document.getElementById('schema-label').textContent = q.schema.name;
+    const tbl = document.getElementById('data-table');
+    const thead = `<thead><tr>${q.schema.cols.map(c=>`<th>${c}</th>`).join('')}</tr></thead>`;
+    const tbody = `<tbody>${q.schema.rows.map(r=>`<tr>${r.map(cell=>`<td class="${cell==='NULL'?'null-val':''}">${cell}</td>`).join('')}</tr>`).join('')}</tbody>`;
+    tbl.innerHTML = thead + tbody;
+  } else {
+    schemaWrap.style.display = 'none';
+  }
+
+  // Code block
+  const codeEl = document.getElementById('q-code');
+  if (q.code) { codeEl.style.display=''; codeEl.innerHTML = hlSQL(q.code); }
+  else { codeEl.style.display='none'; }
+
+  // Mode panels
+  document.getElementById('mode-type').style.display  = state.mode === 'type'  ? '' : 'none';
+  document.getElementById('mode-hint').style.display  = state.mode === 'hint'  ? '' : 'none';
+  document.getElementById('mode-flash').style.display = state.mode === 'flash' ? '' : 'none';
+
+  if (state.mode === 'type') {
+    const inp = document.getElementById('ans-input');
+    inp.value = ''; inp.className = 'answer-input'; inp.disabled = false;
+    document.getElementById('result-banner').className = 'result-banner';
+    document.getElementById('btn-row').innerHTML = `
+      <button class="btn btn-primary" onclick="checkAnswer()">Check Answer</button>
+      <button class="btn btn-ghost"   onclick="showHintType()">Hint 💡</button>
+      <button class="btn btn-ghost"   onclick="revealType()">Reveal</button>
+      <button class="btn btn-ghost"   onclick="prevQ()">← Prev</button>
+      <button class="btn btn-next"    onclick="nextQ()">Next →</button>`;
+    setTimeout(() => inp.focus(), 50);
+  }
+  if (state.mode === 'hint') {
+    document.getElementById('hint-box').className    = 'hint-box';
+    document.getElementById('hint-box').textContent  = q.hint;
+    document.getElementById('ans-reveal').className  = 'answer-reveal';
+    document.getElementById('ans-reveal').textContent = q.reveal;
+    document.getElementById('btn-row').innerHTML = `
+      <button class="btn btn-warn"    onclick="showHint()">Show Hint 💡</button>
+      <button class="btn btn-success" onclick="showReveal()">Show Answer ✓</button>
+      <button class="btn btn-ghost"   onclick="prevQ()">← Prev</button>
+      <button class="btn btn-next"    onclick="nextQ()">Next →</button>`;
+  }
+  if (state.mode === 'flash') {
+    document.getElementById('flashcard').className = 'flashcard';
+    document.getElementById('fc-front').textContent = q.q;
+    document.getElementById('fc-back').textContent  = q.reveal;
+    document.getElementById('btn-row').innerHTML = `
+      <button class="btn btn-success" onclick="markOk()">✓ Got it</button>
+      <button class="btn btn-ghost"   onclick="markNo()">✗ Missed</button>
+      <button class="btn btn-ghost"   onclick="prevQ()">← Prev</button>
+      <button class="btn btn-next"    onclick="nextQ()">Next →</button>`;
+  }
+}
+
+// ══════════════════════════════════════════════════════
+//  ANSWER CHECKING
+// ══════════════════════════════════════════════════════
+function normalize(s) {
+  return s.trim().toLowerCase().replace(/\s+/g, ' ');
+}
+
+function answersMatch(user, correct) {
+  const u = normalize(user);
+  const c = normalize(correct);
+  if (u === c) return true;
+  if (u.length > c.length && u.includes(c)) return true;
+  return false;
+}
+
+async function checkAnswer() {
+  if (state.checking || state.answered) return;
+  const q = Q.find(x => x.id === state.curId);
+  const inp = document.getElementById('ans-input');
+  const banner = document.getElementById('result-banner');
+
+  state.checking = true;
+  inp.disabled = true;
+
+  const hasAI = !!localStorage.getItem('groq_api_key');
+  if (hasAI) {
+    banner.className = 'result-banner show info';
+    banner.textContent = '⏳ AI checking...';
+  }
+
+  let ok = answersMatch(inp.value, q.answer);
+  let aiFeedback = '';
+
+  if (!ok && hasAI) {
+    const result = await checkWithGroq(q.q, q.type, q.answer, inp.value);
+    if (result !== null) {
+      ok = result.correct;
+      aiFeedback = result.feedback || '';
+    }
+  }
+
+  state.checking = false;
+
+  if (ok) {
+    inp.className = 'answer-input correct';
+    inp.disabled = true;
+    state.answered = true;
+    banner.className = 'result-banner show ok';
+    banner.innerHTML = '✓ Correct!' + (hasAI ? ' <span style="opacity:.6;font-size:11px">(AI)</span>' : '') +
+      '<br><span style="font-weight:400;white-space:pre-wrap;font-size:12px">' + q.reveal + '</span>';
+    record(true);
+  } else {
+    inp.className = 'answer-input wrong';
+    inp.disabled = false;
+    inp.focus();
+    banner.className = 'result-banner show bad';
+    banner.innerHTML = '✗ Not quite.' +
+      (aiFeedback ? ' <span style="opacity:.75;font-size:12px">💡 ' + aiFeedback + '</span>' : '') +
+      '<br><span style="font-weight:400;opacity:.8;white-space:pre-wrap;font-size:12px">' + q.reveal + '</span>';
+    if (!state.recordedWrong[state.curId]) {
+      state.recordedWrong[state.curId] = true;
+      record(false);
+    }
+  }
+}
+
+function showHintType() {
+  const q = Q.find(x => x.id === state.curId);
+  const b = document.getElementById('result-banner');
+  b.className = 'result-banner show info';
+  b.textContent = '💡 ' + q.hint;
+}
+function revealType() {
+  const q = Q.find(x => x.id === state.curId);
+  const b = document.getElementById('result-banner');
+  b.className = 'result-banner show info';
+  b.textContent = q.reveal;
+  if (!state.answered) record(false);
+  state.answered = true;
+}
+function showHint()   { document.getElementById('hint-box').className = 'hint-box show'; }
+function showReveal() { document.getElementById('hint-box').className = 'hint-box show'; document.getElementById('ans-reveal').className = 'answer-reveal show'; }
+function flipCard()   { document.getElementById('flashcard').classList.toggle('flipped'); }
+function markOk()     { record(true);  nextQ(); }
+function markNo()     { record(false); nextQ(); }
+
+// ══════════════════════════════════════════════════════
+//  NAVIGATION
+// ══════════════════════════════════════════════════════
+function nextQ() {
+  state.poolIdx++;
+  if (state.poolIdx >= state.pool.length) state.poolIdx = 0;
+  jumpTo(state.pool[state.poolIdx]);
+}
+function prevQ() {
+  state.poolIdx--;
+  if (state.poolIdx < 0) state.poolIdx = state.pool.length - 1;
+  jumpTo(state.pool[state.poolIdx]);
+}
+function shuffle() { buildPool(true); jumpTo(state.pool[0]); }
+
+// ══════════════════════════════════════════════════════
+//  SCORE & PROGRESS
+// ══════════════════════════════════════════════════════
+function record(ok) {
+  state.total++;
+  if (ok) { state.correct++; state.streak++; state.results[state.curId] = 'ok'; }
+  else    { state.wrong++;   state.streak = 0; state.results[state.curId] = 'bad'; }
+  updateScores();
+  renderIndex();
+  saveProgress();
+}
+
+function updateScores() {
+  document.getElementById('sc-correct').textContent = state.correct;
+  document.getElementById('sc-wrong').textContent   = state.wrong;
+  document.getElementById('sc-streak').textContent  = state.streak;
+  const p = state.total > 0 ? Math.round((state.correct/state.total)*100) : 0;
+  document.getElementById('sc-pct').textContent     = p + '%';
+  document.getElementById('hdr-streak').textContent  = state.streak;
+  document.getElementById('hdr-correct').textContent = state.correct;
+  document.getElementById('hdr-total').textContent   = state.total;
+  renderStreak();
+}
+
+function updateProgress() {
+  const total = state.pool.length;
+  const idx   = state.poolIdx >= 0 ? state.poolIdx : 0;
+  const pct   = total > 0 ? Math.round(((idx+1)/total)*100) : 0;
+  document.getElementById('prog-fill').style.width = pct + '%';
+  document.getElementById('prog-label').textContent = (idx+1) + ' / ' + total;
+}
+
+function renderStreak() {
+  let h = '';
+  for (let i = 0; i < 5; i++)
+    h += `<div class="streak-dot${i < state.streak ? ' on' : ''}"></div>`;
+  document.getElementById('streak-dots').innerHTML = h;
+}
+
+// ══════════════════════════════════════════════════════
+//  PERSISTENCE
+// ══════════════════════════════════════════════════════
+function saveProgress() {
+  try {
+    localStorage.setItem('sqldrill', JSON.stringify({
+      correct: state.correct, wrong: state.wrong, streak: state.streak,
+      total: state.total, results: state.results
+    }));
+  } catch(e) {}
+}
+function loadProgress() {
+  try {
+    const saved = JSON.parse(localStorage.getItem('sqldrill') || 'null');
+    if (saved) {
+      state.correct = saved.correct || 0; state.wrong = saved.wrong || 0;
+      state.streak  = saved.streak  || 0; state.total  = saved.total || 0;
+      state.results = saved.results || {};
+    }
+  } catch(e) {}
+}
+function resetProgress() {
+  if (!confirm('Reset all SQL progress?')) return;
+  state.correct = 0; state.wrong = 0; state.streak = 0;
+  state.total = 0; state.results = {};
+  try { localStorage.removeItem('sqldrill'); } catch(e) {}
+  updateScores(); renderIndex();
+}
+
+// ══════════════════════════════════════════════════════
+//  UI CONTROLS
+// ══════════════════════════════════════════════════════
+function toggleSidebar() {
+  const sb  = document.getElementById('sidebar');
+  const btn = document.getElementById('sidebar-toggle');
+  sb.classList.toggle('hidden');
+  btn.classList.toggle('active');
+}
+function setMode(mode, el) {
+  state.mode = mode;
+  document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+  el.classList.add('active');
+  renderQuestion();
+}
+
+// ══════════════════════════════════════════════════════
+//  GROQ AI SETTINGS
+// ══════════════════════════════════════════════════════
+function openSettings() {
+  const key = localStorage.getItem('groq_api_key') || '';
+  document.getElementById('groq-key-input').value = key ? key.slice(0,8) + '••••••••••••' : '';
+  document.getElementById('settings-modal').classList.add('show');
+}
+function closeSettings() { document.getElementById('settings-modal').classList.remove('show'); }
+function saveGroqKey() {
+  const val = document.getElementById('groq-key-input').value.trim();
+  if (val && !val.includes('•')) localStorage.setItem('groq_api_key', val);
+  updateAiBadge(); closeSettings();
+}
+function clearGroqKey() {
+  localStorage.removeItem('groq_api_key');
+  document.getElementById('groq-key-input').value = '';
+  updateAiBadge(); closeSettings();
+}
+function updateAiBadge() {
+  const hasKey = !!localStorage.getItem('groq_api_key');
+  document.getElementById('ai-badge').classList.toggle('show', hasKey);
+  document.getElementById('btn-settings').classList.toggle('has-key', hasKey);
+}
+
+// ══════════════════════════════════════════════════════
+//  GROQ API CALL
+// ══════════════════════════════════════════════════════
+async function checkWithGroq(question, qtype, correct, userAnswer) {
+  const apiKey = localStorage.getItem('groq_api_key');
+  if (!apiKey) return null;
+
+  const systemPrompt = `You are a SQL interview coach grading practice answers.
+Always reply with valid JSON only — no extra text, no markdown.
+Format: {"correct": true or false, "feedback": "one sentence if wrong, empty string if correct"}
+Rules:
+- IGNORE spelling mistakes, typos, and grammar errors
+- For "write" type questions: accept any SQL that achieves the correct result — syntax variations, alias names, and formatting do not matter
+- For "concept" type questions: accept answers that convey the correct meaning even if worded differently
+- For "output" type questions: be strict about the actual result values
+- Only mark wrong if the SQL logic or concept is fundamentally incorrect
+- feedback must explain the conceptual or logical mistake only`;
+
+  const userPrompt = `Question type: ${qtype}
+Question: ${question}
+Expected answer: ${correct}
+Student answer: ${userAnswer}`;
+
+  try {
+    const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
+      body: JSON.stringify({
+        model: 'llama-3.1-8b-instant',
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user',   content: userPrompt }
+        ],
+        temperature: 0, max_tokens: 100
+      })
+    });
+    if (!res.ok) return null;
+    const data = await res.json();
+    return JSON.parse(data.choices[0].message.content.trim());
+  } catch(e) { return null; }
+}
+
+// ══════════════════════════════════════════════════════
+//  SQL SYNTAX HIGHLIGHT
+// ══════════════════════════════════════════════════════
+function hlSQL(code) {
+  return code
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/(--.*)/g,'<span class="cm">$1</span>')
+    .replace(/\b(SELECT|FROM|WHERE|GROUP BY|ORDER BY|HAVING|JOIN|LEFT|RIGHT|INNER|ON|AS|WITH|UNION|DISTINCT|LIMIT|INSERT|UPDATE|DELETE|SET|INTO|VALUES|CREATE|TABLE|INDEX|BY)\b/gi,'<span class="kw">$1</span>')
+    .replace(/\b(COUNT|SUM|AVG|MAX|MIN|RANK|DENSE_RANK|ROW_NUMBER|LAG|LEAD|OVER|PARTITION|COALESCE|CASE|WHEN|THEN|ELSE|END|INTERVAL|EXTRACT|ROUND|CAST|NULLIF)\b/gi,'<span class="fn">$1</span>')
+    .replace(/'([^']*)'/g,"<span class='st'>'$1'</span>")
+    .replace(/\b(\d+)\b/g,'<span class="nm">$1</span>');
+}
+
+init();
+</script>
+</body>
+</html>
