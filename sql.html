@@ -581,6 +581,57 @@ const Q = [
    hint:'COUNT(*) counts rows, not values. The unmatched customer still has 1 row in the result.',
    reveal:'After LEFT JOIN, C2 has 1 row with NULL order columns.\n\nCOUNT(*)        → 1  (counts the row itself)\nCOUNT(order_id) → 0  (skips NULL values)\nSUM(amount)     → NULL (not 0!)\n\nCommon interview trap:\n"How many orders does C2 have?"\nWrong: COUNT(*) → 1\nRight: COUNT(order_id) → 0\n\nAlways use COUNT(specific_column) after LEFT JOIN to count actual matches.'},
 
+  // ── JOIN ROW COUNT SCENARIOS ──
+  {id:28,cat:'jn',diff:'med',type:'concept',
+   q:'Table A has 10,000 rows (unique keys). Table B has 100 rows (unique keys). All 100 keys in B exist in A. How many rows does each join return?\nINNER / LEFT / RIGHT / FULL OUTER / CROSS',
+   schema:{name:'Scenario: all B keys match in A',cols:['Join Type','Row Count','Reason'],
+     rows:[['INNER','?','matched only'],['LEFT','?','all of A'],['RIGHT','?','all of B'],['FULL OUTER','?','all of both'],['CROSS','?','cartesian']]},
+   code:null,
+   answer:'INNER=100, LEFT=10000, RIGHT=100, FULL OUTER=10000, CROSS=1000000',
+   hint:'LEFT always keeps all rows from left table. CROSS = A × B always.',
+   reveal:'All 100 B keys exist in A (unique on both sides):\n\nINNER JOIN   → 100      (only matched rows)\nLEFT JOIN    → 10,000   (all A rows; 9,900 have NULLs for B)\nRIGHT JOIN   → 100      (all B rows; all matched)\nFULL OUTER   → 10,000   (same as LEFT here — no unmatched B rows)\nCROSS JOIN   → 1,000,000 (10,000 × 100, no condition)\n\nKey rule: LEFT JOIN result = left table size when right keys are unique and all matched.'},
+
+  {id:29,cat:'jn',diff:'med',type:'concept',
+   q:'Table A has 10,000 rows (unique keys). Table B has 100 rows (unique keys). Only 60 out of 100 B keys exist in A. 40 B rows have no match. How many rows does each join return?\nINNER / LEFT / RIGHT / FULL OUTER',
+   schema:{name:'Scenario: 60 match, 40 unmatched in B',cols:['Join Type','Row Count'],
+     rows:[['INNER','?'],['LEFT','?'],['RIGHT','?'],['FULL OUTER','?']]},
+   code:null,
+   answer:'INNER=60, LEFT=10000, RIGHT=100, FULL OUTER=10040',
+   hint:'FULL OUTER = all matched rows + unmatched from A + unmatched from B.',
+   reveal:'60 B keys match in A. 40 B keys have no match in A.\n\nINNER JOIN   → 60       (only the 60 matched rows)\nLEFT JOIN    → 10,000   (all A; 9,940 have NULLs for B)\nRIGHT JOIN   → 100      (all B; 40 rows have NULLs for A columns)\nFULL OUTER   → 10,040   (10,000 from A + 40 unmatched B rows)\n\nFULL OUTER formula:\nmatched(60) + unmatched_A(9,940) + unmatched_B(40) = 10,040'},
+
+  {id:30,cat:'jn',diff:'hard',type:'concept',
+   q:'Table A has 10,000 rows where each of the 100 B keys repeats 100 times (duplicates in A). Table B has 100 rows with unique keys. How many rows does INNER JOIN and LEFT JOIN return?',
+   schema:{name:'Scenario: duplicates in A only',cols:['Table A','Table B'],
+     rows:[['key=1 (×100 rows)','key=1 (×1 row)'],['key=2 (×100 rows)','key=2 (×1 row)'],['...','...'],['key=100 (×100 rows)','key=100 (×1 row)']]},
+   code:null,
+   answer:'INNER=10000, LEFT=10000',
+   hint:'Each B row matches 100 A rows. Duplicates in A multiply the matched rows.',
+   reveal:'Each of the 100 B keys matches 100 rows in A.\n\nINNER JOIN → 100 keys × 100 matches = 10,000 rows\nLEFT JOIN  → 10,000 rows (same — all A rows matched)\nRIGHT JOIN → 10,000 rows (each B row fans out to 100 A rows)\n\nDuplicates in A multiply the result.\nNo rows are lost because every A row finds a match in B.\n\nLeft table size ≠ LEFT JOIN result size when A has duplicates!'},
+
+  {id:31,cat:'jn',diff:'hard',type:'concept',
+   q:'Table A has 10,000 rows with duplicate keys. Table B has 100 rows with duplicate keys too (each key appears 5 times in B). What happens to INNER JOIN row count — more or less than 10,000?',
+   schema:{name:'Scenario: duplicates in BOTH tables (many-to-many)',cols:['Table','Example'],
+     rows:[['Table A','key=1 appears 100 times'],['Table B','key=1 appears 5 times'],['Matches for key=1','100 × 5 = 500 rows!']]},
+   code:null,
+   answer:'More than 10,000. Every A row with a duplicate key matches every B row with the same key, causing a multiplicative explosion.',
+   hint:'Many-to-many joins multiply rows. 100 A rows × 5 B rows for same key = 500 rows just for that key.',
+   reveal:'Many-to-many JOIN is dangerous!\n\nFor key=1:\n  A has 100 rows, B has 5 rows\n  Matches = 100 × 5 = 500 rows\n\nFor all 100 keys:\n  500 rows × 100 keys = 50,000 rows!\n\nINNER JOIN result: 50,000 rows (5× more than Table A!)\n\nThis is called "fan-out" or "row explosion".\nAlways check for duplicates before joining:\nSELECT join_key, COUNT(*) FROM B\nGROUP BY join_key HAVING COUNT(*) > 1;'},
+
+  {id:32,cat:'jn',diff:'easy',type:'concept',
+   q:'Table A has 10,000 rows. Table B has 100 rows. What does CROSS JOIN always return regardless of keys, duplicates, or NULLs?',
+   schema:null, code:null,
+   answer:'1,000,000 rows. CROSS JOIN returns every combination of rows from both tables with no condition.',
+   hint:'CROSS JOIN has no ON condition — it pairs every row in A with every row in B.',
+   reveal:'CROSS JOIN = cartesian product\n\n10,000 × 100 = 1,000,000 rows\n\nNo ON condition — every row from A is paired with every row from B.\nNULLs, duplicates, no matches — none of it matters.\nResult is always A_rows × B_rows.\n\nUse case: generating all combinations (e.g. all dates × all products).\nDanger: accidental CROSS JOIN on large tables can crash your query!'},
+
+  {id:33,cat:'jn',diff:'hard',type:'concept',
+   q:'You LEFT JOIN Table A (10,000 rows) with Table B (100 rows) and get back 15,000 rows. What does this tell you about the data?',
+   schema:null, code:null,
+   answer:'Table B has duplicate join keys. Some A rows matched multiple B rows, causing fan-out. The join key is not unique in Table B.',
+   hint:'LEFT JOIN result > left table size means the right table has duplicate keys multiplying your rows.',
+   reveal:'LEFT JOIN result should be ≥ left table size.\n\nIf result (15,000) > left table (10,000):\n→ Table B has DUPLICATE join keys\n→ Some A rows matched 2+ B rows, creating extra rows\n\nHow to diagnose:\nSELECT join_key, COUNT(*)\nFROM B\nGROUP BY join_key\nHAVING COUNT(*) > 1;\n\nHow to fix (de-duplicate B first):\nWITH deduped_B AS (\n  SELECT DISTINCT join_key, col1 FROM B\n)\nSELECT ... FROM A LEFT JOIN deduped_B ON ...'},
+
 ];
 
 // ══════════════════════════════════════════════════════
