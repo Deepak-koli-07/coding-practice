@@ -173,6 +173,45 @@ header{position:relative;z-index:20;display:flex;align-items:center;justify-cont
 
 .no-results{padding:24px;text-align:center;font-size:12px;color:var(--muted);font-family:'JetBrains Mono',monospace;}
 
+/* REFERENCE PANEL */
+#ref-panel{padding-bottom:40px;}
+.ref-page-title{font-size:20px;font-weight:800;margin-bottom:4px;}
+.ref-page-sub{font-size:12px;color:var(--muted);margin-bottom:20px;font-family:'JetBrains Mono',monospace;}
+.ref-cat-tabs{display:flex;gap:6px;margin-bottom:20px;flex-wrap:wrap;}
+.ref-tab{font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:700;padding:6px 16px;border-radius:999px;border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer;transition:all .15s;letter-spacing:.5px;}
+.ref-tab:hover{color:var(--text);}
+.ref-tab[data-cat="str"].active{background:rgba(91,141,239,.15);border-color:#5b8def;color:#5b8def;}
+.ref-tab[data-cat="lst"].active{background:rgba(62,207,142,.15);border-color:#3ecf8e;color:#3ecf8e;}
+.ref-tab[data-cat="set"].active{background:rgba(245,166,35,.15);border-color:#f5a623;color:#f5a623;}
+.ref-tab[data-cat="dct"].active{background:rgba(182,110,245,.15);border-color:#b66ef5;color:#b66ef5;}
+.ref-tab[data-cat="blt"].active{background:rgba(224,92,106,.15);border-color:#e05c6a;color:#e05c6a;}
+.ref-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(330px,1fr));gap:12px;}
+.ref-card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:16px;position:relative;overflow:hidden;}
+.ref-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;}
+.ref-card[data-cat="str"]::before{background:var(--accent);}
+.ref-card[data-cat="lst"]::before{background:var(--accent2);}
+.ref-card[data-cat="set"]::before{background:var(--accent3);}
+.ref-card[data-cat="dct"]::before{background:var(--purple);}
+.ref-card[data-cat="blt"]::before{background:var(--danger);}
+.ref-fn-name{font-family:'JetBrains Mono',monospace;font-size:14px;font-weight:700;margin-bottom:3px;}
+.ref-card[data-cat="str"] .ref-fn-name{color:#5b8def;}
+.ref-card[data-cat="lst"] .ref-fn-name{color:#3ecf8e;}
+.ref-card[data-cat="set"] .ref-fn-name{color:#f5a623;}
+.ref-card[data-cat="dct"] .ref-fn-name{color:#b66ef5;}
+.ref-card[data-cat="blt"] .ref-fn-name{color:#e05c6a;}
+.ref-syntax{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted);margin-bottom:6px;}
+.ref-returns{display:inline-block;font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;padding:2px 8px;border-radius:999px;margin-bottom:8px;}
+.ref-returns-str{background:rgba(91,141,239,.12);color:#8ab4f8;}
+.ref-returns-list{background:rgba(62,207,142,.12);color:#3ecf8e;}
+.ref-returns-int{background:rgba(245,166,35,.12);color:#f5a623;}
+.ref-returns-bool{background:rgba(224,92,106,.12);color:#e05c6a;}
+.ref-returns-None{background:rgba(122,128,153,.12);color:var(--muted);}
+.ref-returns-set{background:rgba(245,166,35,.12);color:#f5a623;}
+.ref-returns-dict{background:rgba(182,110,245,.12);color:#b66ef5;}
+.ref-returns-any{background:rgba(182,110,245,.12);color:#b66ef5;}
+.ref-desc{font-size:12px;color:var(--text);margin-bottom:8px;line-height:1.55;}
+.ref-example{background:var(--code-bg);border:1px solid var(--border);border-radius:6px;padding:8px 10px;font-family:'JetBrains Mono',monospace;font-size:11px;color:#c9d0e8;white-space:pre;overflow-x:auto;line-height:1.7;margin:0;}
+
 @media(max-width:700px){
   .sidebar{position:fixed;top:0;left:0;bottom:0;z-index:100;width:280px !important;opacity:1 !important;}
   .sidebar.hidden{width:0 !important;opacity:0 !important;}
@@ -191,6 +230,7 @@ header{position:relative;z-index:20;display:flex;align-items:center;justify-cont
       <span>correct <strong id="hdr-correct">0</strong></span>
       <span>total <strong id="hdr-total">0</strong></span>
     </div>
+    <button id="btn-ref" onclick="toggleRef()" style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted);background:transparent;border:1px solid var(--border);border-radius:6px;padding:6px 10px;cursor:pointer;transition:all .2s;">📚 Reference</button>
     <a href="sql.html" style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted);text-decoration:none;padding:6px 10px;border:1px solid var(--border);border-radius:6px;transition:all .2s;" onmouseover="this.style.color='var(--accent3)';this.style.borderColor='var(--accent3)'" onmouseout="this.style.color='var(--muted)';this.style.borderColor='var(--border)'">⬡ SQLDrill</a>
     <span class="ai-badge" id="ai-badge">AI</span>
     <button class="btn-settings" id="btn-settings" onclick="openSettings()" title="Groq AI Settings">⚙</button>
@@ -237,6 +277,7 @@ header{position:relative;z-index:20;display:flex;align-items:center;justify-cont
   <!-- MAIN CONTENT -->
   <div class="main" id="main-area">
 
+  <div id="practice-area">
     <div class="score-panel">
       <div class="score-card"><span class="score-num" id="sc-correct" style="color:#3ecf8e">0</span><div class="score-lbl">Correct</div></div>
       <div class="score-card"><span class="score-num" id="sc-wrong"   style="color:#e05c6a">0</span><div class="score-lbl">Wrong</div></div>
@@ -296,8 +337,24 @@ header{position:relative;z-index:20;display:flex;align-items:center;justify-cont
       <div class="btn-row" id="btn-row"></div>
     </div>
 
+  </div><!-- /practice-area -->
+
+  <!-- REFERENCE PANEL -->
+  <div id="ref-panel" style="display:none">
+    <div class="ref-page-title">Python Reference</div>
+    <div class="ref-page-sub">syntax · return type · dtype · example</div>
+    <div class="ref-cat-tabs">
+      <button class="ref-tab active" data-cat="str" onclick="showRefCat('str',this)">STR</button>
+      <button class="ref-tab" data-cat="lst" onclick="showRefCat('lst',this)">LIST</button>
+      <button class="ref-tab" data-cat="set" onclick="showRefCat('set',this)">SET</button>
+      <button class="ref-tab" data-cat="dct" onclick="showRefCat('dct',this)">DICT</button>
+      <button class="ref-tab" data-cat="blt" onclick="showRefCat('blt',this)">BUILT-IN</button>
+    </div>
+    <div class="ref-grid" id="ref-grid"></div>
   </div>
-</div>
+
+  </div><!-- /main-area -->
+</div><!-- /app-body -->
 
 <script>
 // ══════════════════════════════════════════════════════
@@ -844,6 +901,264 @@ Student answer: ${userAnswer}`;
     const data = await res.json();
     return JSON.parse(data.choices[0].message.content.trim());
   } catch(e) { return null; }
+}
+
+// ══════════════════════════════════════════════════════
+//  REFERENCE TAB — function data + render
+// ══════════════════════════════════════════════════════
+const REF = {
+  str:[
+    {name:'strip()',syntax:'str.strip(chars=None)',returns:'str',
+     desc:'Removes leading and trailing whitespace (or specified chars). Returns a new string — does not modify in place.',
+     ex:'"  hello  ".strip()     →  "hello"\n"##title##".strip("#")  →  "title"'},
+    {name:'lstrip()',syntax:'str.lstrip(chars=None)',returns:'str',
+     desc:'Removes whitespace (or chars) from the LEFT side only.',
+     ex:'"  hello  ".lstrip()  →  "hello  "'},
+    {name:'rstrip()',syntax:'str.rstrip(chars=None)',returns:'str',
+     desc:'Removes whitespace (or chars) from the RIGHT side only.',
+     ex:'"  hello  ".rstrip()  →  "  hello"'},
+    {name:'split()',syntax:'str.split(sep=None, maxsplit=-1)',returns:'list',
+     desc:'Splits string into a list. Default splits on any whitespace and removes empty strings. maxsplit limits the number of splits.',
+     ex:'"a,b,c".split(",")        →  ["a","b","c"]\n"a-b-c".split("-", 1)    →  ["a","b-c"]'},
+    {name:'join()',syntax:'sep.join(iterable)',returns:'str',
+     desc:'Joins elements of an iterable into a single string using sep as the separator. All items must be strings.',
+     ex:'" ".join(["Hello","World"])   →  "Hello World"\n",".join(["a","b","c"])    →  "a,b,c"'},
+    {name:'replace()',syntax:'str.replace(old, new, count=-1)',returns:'str',
+     desc:'Returns a copy with all occurrences of old replaced by new. count limits how many replacements are made.',
+     ex:'"hello world".replace("world","Python")  →  "hello Python"'},
+    {name:'find()',syntax:'str.find(sub, start=0, end=len)',returns:'int',
+     desc:'Returns the index of the first occurrence of sub. Returns -1 if not found — never raises an error.',
+     ex:'"hello".find("ll")    →  2\n"hello".find("xyz")   →  -1'},
+    {name:'index()',syntax:'str.index(sub, start=0, end=len)',returns:'int',
+     desc:'Like find() but raises ValueError if sub is not found. Use find() when missing is expected.',
+     ex:'"hello".index("ll")   →  2\n"hello".index("xyz")  →  ValueError'},
+    {name:'upper()',syntax:'str.upper()',returns:'str',
+     desc:'Returns a copy with all characters in uppercase.',
+     ex:'"medicare".upper()  →  "MEDICARE"'},
+    {name:'lower()',syntax:'str.lower()',returns:'str',
+     desc:'Returns a copy with all characters in lowercase.',
+     ex:'"MEDICARE".lower()  →  "medicare"'},
+    {name:'title()',syntax:'str.title()',returns:'str',
+     desc:'Capitalizes the first letter of EACH word. All other letters become lowercase.',
+     ex:'"medicare advantage".title()  →  "Medicare Advantage"'},
+    {name:'capitalize()',syntax:'str.capitalize()',returns:'str',
+     desc:'Capitalizes only the FIRST character of the entire string. Rest becomes lowercase.',
+     ex:'"hello WORLD".capitalize()  →  "Hello world"'},
+    {name:'startswith()',syntax:'str.startswith(prefix)',returns:'bool',
+     desc:'Returns True if string starts with prefix. prefix can be a tuple to check multiple options.',
+     ex:'"Medicare Advantage".startswith("Medicare")       →  True\n"Plan B".startswith(("Plan","Part"))              →  True'},
+    {name:'endswith()',syntax:'str.endswith(suffix)',returns:'bool',
+     desc:'Returns True if the string ends with suffix.',
+     ex:'"Medicare Advantage".endswith("Advantage")  →  True\n"Medicare Advantage".endswith("Plan")     →  False'},
+    {name:'count()',syntax:'str.count(sub)',returns:'int',
+     desc:'Returns the number of non-overlapping occurrences of sub.',
+     ex:'"the cat sat on the mat".count("at")  →  3'},
+    {name:'isdigit()',syntax:'str.isdigit()',returns:'bool',
+     desc:'True if all characters are digits (0–9). Empty string returns False.',
+     ex:'"123".isdigit()   →  True\n"12a".isdigit()   →  False\n"".isdigit()     →  False'},
+    {name:'isalpha()',syntax:'str.isalpha()',returns:'bool',
+     desc:'True if all characters are alphabetic letters. Spaces and digits return False.',
+     ex:'"hello".isalpha()    →  True\n"hello 1".isalpha()  →  False'},
+    {name:'isalnum()',syntax:'str.isalnum()',returns:'bool',
+     desc:'True if all characters are letters OR digits. No spaces or punctuation.',
+     ex:'"hello1".isalnum()    →  True\n"hi there".isalnum()  →  False'},
+    {name:'zfill()',syntax:'str.zfill(width)',returns:'str',
+     desc:'Pads the string with leading zeros until it reaches width. No effect if already at or beyond width.',
+     ex:'"42".zfill(5)    →  "00042"\n"hello".zfill(3)  →  "hello"  (already 5 chars)'},
+    {name:'[::-1] slice',syntax:'str[::-1]',returns:'str',
+     desc:'Slicing with step -1 reverses a string. Works on any sequence.',
+     ex:'"Python"[::-1]   →  "nohtyP"\n[1,2,3][::-1]    →  [3,2,1]'},
+  ],
+  lst:[
+    {name:'append()',syntax:'list.append(item)',returns:'None',
+     desc:'Adds a single item to the END of the list. Modifies in place. Returns None.',
+     ex:'lst = [1,2,3]\nlst.append(4)   →  lst is [1,2,3,4]'},
+    {name:'extend()',syntax:'list.extend(iterable)',returns:'None',
+     desc:'Adds all items from an iterable to the end. Different from append — does not nest the list.',
+     ex:'lst.append([4,5])   →  [1,2,3,[4,5]]  ← nested!\nlst.extend([4,5])   →  [1,2,3,4,5]   ← flat'},
+    {name:'insert()',syntax:'list.insert(index, item)',returns:'None',
+     desc:'Inserts item BEFORE the given index. Existing items shift right.',
+     ex:'lst = [1,2,3]\nlst.insert(1, 99)  →  [1,99,2,3]'},
+    {name:'pop()',syntax:'list.pop(index=-1)',returns:'item (any type)',
+     desc:'Removes AND returns the item at index. Default removes the last item.',
+     ex:'lst = ["a","b","c"]\nlst.pop()    →  "c"   (lst becomes ["a","b"])\nlst.pop(0)   →  "a"   (removes first)'},
+    {name:'remove()',syntax:'list.remove(item)',returns:'None',
+     desc:'Removes the FIRST occurrence of item. Raises ValueError if not found.',
+     ex:'[1,2,3,2].remove(2)  →  [1,3,2]  (removes first 2 only)'},
+    {name:'sort()',syntax:'list.sort(key=None, reverse=False)',returns:'None',
+     desc:'Sorts list IN PLACE. Returns None — do not assign to a variable.',
+     ex:'lst = [3,1,4,1,2]\nlst.sort()                →  [1,1,2,3,4]\nlst.sort(reverse=True)    →  [4,3,2,1,1]'},
+    {name:'sorted()',syntax:'sorted(iterable, key=None, reverse=False)',returns:'list',
+     desc:'Returns a NEW sorted list. The original is unchanged. Works on any iterable.',
+     ex:'sorted([3,1,2])                →  [1,2,3]\nsorted("bca")                 →  ["a","b","c"]\nsorted(lst, key=lambda x: -x)  →  descending'},
+    {name:'reverse()',syntax:'list.reverse()',returns:'None',
+     desc:'Reverses list IN PLACE. Returns None.',
+     ex:'lst = [1,2,3]\nlst.reverse()  →  lst is [3,2,1]'},
+    {name:'copy()',syntax:'list.copy()',returns:'list',
+     desc:'Returns a shallow copy. Changes to the copy do not affect the original.',
+     ex:'a = [1,2,3]\nb = a.copy()\nb.append(4)  →  a is still [1,2,3]'},
+    {name:'count()',syntax:'list.count(item)',returns:'int',
+     desc:'Returns the number of times item appears in the list.',
+     ex:'[1,2,3,2,1].count(2)  →  2'},
+    {name:'index()',syntax:'list.index(item, start=0, end=len)',returns:'int',
+     desc:'Returns the index of the first occurrence of item. Raises ValueError if not found.',
+     ex:'["a","b","c"].index("b")  →  1'},
+    {name:'slicing [:]',syntax:'list[start:stop:step]',returns:'list',
+     desc:'Returns a new sublist. start is included, stop is excluded. step defaults to 1.',
+     ex:'lst = [10,20,30,40,50]\nlst[1:4]    →  [20,30,40]\nlst[::2]    →  [10,30,50]\nlst[::-1]   →  [50,40,30,20,10]'},
+    {name:'list comprehension',syntax:'[expr for item in iterable if condition]',returns:'list',
+     desc:'Creates a new list by applying an expression to each item, with an optional filter.',
+     ex:'[x**2 for x in range(1,5)]          →  [1,4,9,16]\n[x for x in range(10) if x%2==0]   →  [0,2,4,6,8]'},
+  ],
+  set:[
+    {name:'add()',syntax:'set.add(item)',returns:'None',
+     desc:'Adds item to the set. No effect if item is already present (sets have no duplicates).',
+     ex:'s = {1,2,3}\ns.add(4)  →  {1,2,3,4}\ns.add(2)  →  {1,2,3,4}  (no duplicate added)'},
+    {name:'remove()',syntax:'set.remove(item)',returns:'None',
+     desc:'Removes item. Raises KeyError if item not found.',
+     ex:'s = {1,2,3}\ns.remove(2)    →  {1,3}\ns.remove(99)   →  KeyError!'},
+    {name:'discard()',syntax:'set.discard(item)',returns:'None',
+     desc:'Removes item if present. Does NOT raise an error if item is missing — safe alternative to remove().',
+     ex:'s = {1,2,3}\ns.discard(2)   →  {1,3}\ns.discard(99)  →  {1,3}  (no error)'},
+    {name:'union()',syntax:'set.union(other)   or   set | other',returns:'set',
+     desc:'Returns a NEW set containing all items from BOTH sets.',
+     ex:'{1,2,3} | {3,4,5}       →  {1,2,3,4,5}\n{1,2}.union({2,3,4})    →  {1,2,3,4}'},
+    {name:'intersection()',syntax:'set.intersection(other)   or   set & other',returns:'set',
+     desc:'Returns a NEW set containing only items that exist in BOTH sets.',
+     ex:'{1,2,3} & {2,3,4}              →  {2,3}\n{1,2}.intersection({2,3,4})    →  {2}'},
+    {name:'difference()',syntax:'set.difference(other)   or   set - other',returns:'set',
+     desc:'Returns a NEW set with items in the first set but NOT in the second.',
+     ex:'{1,2,3} - {2,3,4}           →  {1}\n{1,2}.difference({2,3,4})   →  {1}'},
+    {name:'symmetric_difference()',syntax:'set.symmetric_difference(other)   or   set ^ other',returns:'set',
+     desc:'Items in EITHER set but NOT in BOTH (exclusive OR / XOR).',
+     ex:'{1,2,3} ^ {2,3,4}  →  {1,4}'},
+    {name:'issubset()',syntax:'set.issubset(other)   or   set <= other',returns:'bool',
+     desc:'True if all items in this set are also in other.',
+     ex:'{1,2}.issubset({1,2,3})   →  True\n{1,5}.issubset({1,2,3})   →  False'},
+    {name:'issuperset()',syntax:'set.issuperset(other)   or   set >= other',returns:'bool',
+     desc:'True if this set contains all items from other.',
+     ex:'{1,2,3}.issuperset({1,2})  →  True\n{1,2}.issuperset({1,2,3})  →  False'},
+    {name:'pop()',syntax:'set.pop()',returns:'item (any type)',
+     desc:'Removes and returns an ARBITRARY item. Sets are unordered — no guaranteed which item is returned.',
+     ex:'s = {1,2,3}\ns.pop()  →  some item (unpredictable)'},
+    {name:'clear()',syntax:'set.clear()',returns:'None',
+     desc:'Removes all items from the set, leaving it empty.',
+     ex:'s = {1,2,3}\ns.clear()  →  s is now set()'},
+  ],
+  dct:[
+    {name:'get()',syntax:'dict.get(key, default=None)',returns:'value or None',
+     desc:'Returns value for key. If key not found, returns default instead of raising KeyError. Safe way to access dict.',
+     ex:'d = {"a":1,"b":2}\nd.get("a")       →  1\nd.get("z")       →  None\nd.get("z", 0)    →  0'},
+    {name:'keys()',syntax:'dict.keys()',returns:'dict_keys',
+     desc:'Returns a view of all keys. Wrap with list() to get a plain list.',
+     ex:'{"a":1,"b":2}.keys()    →  dict_keys(["a","b"])\nlist(d.keys())           →  ["a","b"]'},
+    {name:'values()',syntax:'dict.values()',returns:'dict_values',
+     desc:'Returns a view of all values.',
+     ex:'{"a":1,"b":2}.values()  →  dict_values([1,2])'},
+    {name:'items()',syntax:'dict.items()',returns:'dict_items of (key,val) tuples',
+     desc:'Returns (key, value) pairs. Best way to iterate over a dict.',
+     ex:'d = {"a":1,"b":2}\nfor k,v in d.items():\n    print(k,v)   →  a 1  then  b 2'},
+    {name:'pop()',syntax:'dict.pop(key, default)',returns:'value',
+     desc:'Removes key and returns its value. Raises KeyError if key missing and no default given.',
+     ex:'d = {"a":1,"b":2}\nd.pop("a")       →  1   (d is now {"b":2})\nd.pop("z", 0)    →  0   (no error)'},
+    {name:'update()',syntax:'dict.update(other)',returns:'None',
+     desc:'Merges another dict into this one in-place. Existing keys are overwritten.',
+     ex:'d = {"a":1}\nd.update({"a":99,"b":2})  →  d is {"a":99,"b":2}'},
+    {name:'setdefault()',syntax:'dict.setdefault(key, default=None)',returns:'value',
+     desc:'Returns value for key. If key not found, INSERTS it with default and returns default.',
+     ex:'d = {"a":1}\nd.setdefault("a", 99)  →  1   (key exists, unchanged)\nd.setdefault("b", 99)  →  99  (inserts "b":99)'},
+    {name:'copy()',syntax:'dict.copy()',returns:'dict',
+     desc:'Returns a shallow copy. Changes to copy do not affect original.',
+     ex:'d = {"a":1}\nd2 = d.copy()\nd2["b"] = 2  →  d is still {"a":1}'},
+    {name:'dict comprehension',syntax:'{key_expr: val_expr for item in iterable}',returns:'dict',
+     desc:'Creates a dictionary from an expression. Can include a filter condition.',
+     ex:'{x: x**2 for x in range(4)}              →  {0:0,1:1,2:4,3:9}\n{k:v for k,v in [("a",1),("b",2)]}      →  {"a":1,"b":2}'},
+    {name:'in operator',syntax:'key in dict',returns:'bool',
+     desc:'Checks if key exists in the dictionary. Checks KEYS only, not values.',
+     ex:'"a" in {"a":1,"b":2}   →  True\n1   in {"a":1,"b":2}   →  False  (1 is a value, not key)'},
+  ],
+  blt:[
+    {name:'len()',syntax:'len(obj)',returns:'int',
+     desc:'Returns the number of items in a string, list, tuple, set, or dict.',
+     ex:'len("hello")          →  5\nlen([1,2,3])         →  3\nlen({"a":1,"b":2})   →  2  (counts keys)'},
+    {name:'range()',syntax:'range(stop)   /   range(start, stop, step)',returns:'range',
+     desc:'Generates a lazy sequence of integers. start and step default to 0 and 1. Wrap with list() to inspect.',
+     ex:'list(range(5))        →  [0,1,2,3,4]\nlist(range(1,6))      →  [1,2,3,4,5]\nlist(range(0,10,2))   →  [0,2,4,6,8]'},
+    {name:'enumerate()',syntax:'enumerate(iterable, start=0)',returns:'enumerate of (int, item) tuples',
+     desc:'Adds a counter to an iterable. Returns (index, value) pairs. Avoids manual counter.',
+     ex:'for i,v in enumerate(["a","b","c"]):\n    print(i,v)   →  0 a / 1 b / 2 c'},
+    {name:'zip()',syntax:'zip(*iterables)',returns:'zip of tuples',
+     desc:'Pairs items from multiple iterables element-by-element. Stops at the SHORTEST iterable.',
+     ex:'list(zip([1,2,3],["a","b","c"]))   →  [(1,"a"),(2,"b"),(3,"c")]'},
+    {name:'map()',syntax:'map(func, iterable)',returns:'map (lazy iterator)',
+     desc:'Applies func to each item. Returns a lazy iterator — wrap with list() to see all results.',
+     ex:'list(map(str, [1,2,3]))            →  ["1","2","3"]\nlist(map(lambda x:x*2, [1,2,3]))  →  [2,4,6]'},
+    {name:'filter()',syntax:'filter(func, iterable)',returns:'filter (lazy iterator)',
+     desc:'Keeps only items where func(item) is True. Returns lazy iterator.',
+     ex:'list(filter(lambda x:x>2, [1,2,3,4]))   →  [3,4]\nlist(filter(None, [0,1,False,2,""]))     →  [1,2]'},
+    {name:'sorted()',syntax:'sorted(iterable, key=None, reverse=False)',returns:'list',
+     desc:'Returns a NEW sorted list from any iterable. Original unchanged.',
+     ex:'sorted([3,1,2])                          →  [1,2,3]\nsorted(["banana","apple"])               →  ["apple","banana"]\nsorted(lst, key=lambda x: -x)           →  descending'},
+    {name:'min() / max()',syntax:'min(iterable, key=None)   /   max(iterable)',returns:'item (any type)',
+     desc:'Returns the smallest or largest item. key= applies a function before comparing.',
+     ex:'min([3,1,2])                →  1\nmax("hello")                →  "o"\nmin(["hi","hey"], key=len)  →  "hi"'},
+    {name:'sum()',syntax:'sum(iterable, start=0)',returns:'int or float',
+     desc:'Returns the total of all numeric items. start adds an initial value to the sum.',
+     ex:'sum([1,2,3])       →  6\nsum([1,2,3], 10)   →  16\nsum([])            →  0'},
+    {name:'any()',syntax:'any(iterable)',returns:'bool',
+     desc:'True if at least ONE item is truthy. False for empty iterables.',
+     ex:'any([False,True,False])   →  True\nany([0,0,0])              →  False\nany([])                   →  False'},
+    {name:'all()',syntax:'all(iterable)',returns:'bool',
+     desc:'True if ALL items are truthy. True for empty iterables.',
+     ex:'all([True,True,True])    →  True\nall([True,False,True])   →  False\nall([])                  →  True  (vacuously true)'},
+    {name:'type()',syntax:'type(obj)',returns:'type',
+     desc:"Returns the object's type. Use isinstance() for type checking in production code.",
+     ex:'type(42)          →  <class "int">\ntype("hello")     →  <class "str">\ntype([1,2,3])     →  <class "list">'},
+    {name:'isinstance()',syntax:'isinstance(obj, type_or_tuple)',returns:'bool',
+     desc:'Checks if obj is an instance of the given type or any type in a tuple. Preferred over type() == for type checking.',
+     ex:'isinstance(42, int)              →  True\nisinstance("hi", (str,int))      →  True  (tuple of types)\nisinstance(True, int)            →  True  (bool is subclass of int)'},
+    {name:'int() / str() / float() / list()',syntax:'int(x)   str(x)   float(x)   list(x)',returns:'converted type',
+     desc:'Type conversion functions.',
+     ex:'int("42")       →  42\nstr(99)         →  "99"\nfloat("3.14")   →  3.14\nlist("abc")     →  ["a","b","c"]'},
+  ]
+};
+
+let refCat = 'str';
+let refOpen = false;
+
+function showRefCat(cat, btn) {
+  refCat = cat;
+  document.querySelectorAll('.ref-tab').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderRef();
+}
+
+function renderRef() {
+  const grid = document.getElementById('ref-grid');
+  const retCls = r => {
+    const m = {'str':'str','list':'list','int':'int','bool':'bool','None':'None','set':'set','dict':'dict'};
+    for (const k in m) if (r.startsWith(k)) return m[k];
+    return 'any';
+  };
+  grid.innerHTML = REF[refCat].map(f => `
+    <div class="ref-card" data-cat="${refCat}">
+      <div class="ref-fn-name">${f.name}</div>
+      <div class="ref-syntax">${f.syntax}</div>
+      <span class="ref-returns ref-returns-${retCls(f.returns)}">→ ${f.returns}</span>
+      <div class="ref-desc">${f.desc}</div>
+      <pre class="ref-example">${f.ex}</pre>
+    </div>`).join('');
+}
+
+function toggleRef() {
+  refOpen = !refOpen;
+  document.getElementById('ref-panel').style.display    = refOpen ? 'block' : 'none';
+  document.getElementById('practice-area').style.display = refOpen ? 'none'  : '';
+  document.getElementById('sidebar').classList.toggle('hidden', refOpen);
+  const btn = document.getElementById('btn-ref');
+  btn.style.color       = refOpen ? 'var(--purple)' : '';
+  btn.style.borderColor = refOpen ? 'var(--purple)' : '';
+  if (refOpen) renderRef();
 }
 
 init();
